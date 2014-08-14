@@ -1,0 +1,154 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <MinimumVisualStudioVersion>11.0</MinimumVisualStudioVersion>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{0249818E-5FB9-4CBC-8508-15BAF1ED034A}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Portable.Data.Sqlite</RootNamespace>
+    <AssemblyName>Portable.Data.Sqlite</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkProfile>Profile78</TargetFrameworkProfile>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{786C830F-07A1-408B-BD7F-6EE04809D6DB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Debug\Portable.Data.Sqlite.XML</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\NuGetOutput\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DocumentationFile>..\NuGetOutput\Portable.Data.Sqlite.XML</DocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- A reference to the entire .NET Framework is automatically included -->
+    <ProjectReference Include="..\Portable.Data\Portable.Data.csproj">
+      <Project>{f489b693-cf91-4e87-a118-47ad6399b688}</Project>
+      <Name>Portable.Data</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Portable.Data.Sqlite\EncryptedTable\EncryptedTable.cs">
+      <Link>EncryptedTable\EncryptedTable.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\EncryptedTable\EncryptedTableItem.cs">
+      <Link>EncryptedTable\EncryptedTableItem.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\EncryptedTable\IEncryptedTableItem.cs">
+      <Link>EncryptedTable\IEncryptedTableItem.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\EncryptedTable\IObjectCryptEngine.cs">
+      <Link>EncryptedTable\IObjectCryptEngine.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\EncryptedTable\ItemPropertyAttributes.cs">
+      <Link>EncryptedTable\ItemPropertyAttributes.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\EncryptedTable\TableColumn.cs">
+      <Link>EncryptedTable\TableColumn.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\EncryptedTable\TableIndex.cs">
+      <Link>EncryptedTable\TableIndex.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\EncryptedTable\TableSearch.cs">
+      <Link>EncryptedTable\TableSearch.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\EncryptedTable\TableSearchItem.cs">
+      <Link>EncryptedTable\TableSearchItem.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\HelperMethods.cs">
+      <Link>HelperMethods.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\ICloneable.cs">
+      <Link>ICloneable.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\SQLiteAdoConnection.cs">
+      <Link>SQLiteAdoConnection.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\SQLiteAdoConnectionPool.cs">
+      <Link>SQLiteAdoConnectionPool.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\SQLiteBase.cs">
+      <Link>SQLiteBase.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\SQLiteBasicWrappers.cs">
+      <Link>SQLiteBasicWrappers.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\SQLiteCommand.cs">
+      <Link>SQLiteCommand.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\SQLiteConnectionWrapper.cs">
+      <Link>SQLiteConnectionWrapper.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\SQLiteConvert.cs">
+      <Link>SQLiteConvert.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\SQLiteDataReader.cs">
+      <Link>SQLiteDataReader.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\SQLiteEnlistment.cs">
+      <Link>SQLiteEnlistment.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\SQLiteException.cs">
+      <Link>SQLiteException.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\SQLiteFunction.cs">
+      <Link>SQLiteFunction.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\SQLiteFunctionAttribute.cs">
+      <Link>SQLiteFunctionAttribute.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\SQLiteParameter.cs">
+      <Link>SQLiteParameter.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\SQLiteParameterCollection.cs">
+      <Link>SQLiteParameterCollection.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\SQLiteStatement.cs">
+      <Link>SQLiteStatement.cs</Link>
+    </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\SQLiteTransaction.cs">
+      <Link>SQLiteTransaction.cs</Link>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="SQLitePCL">
+      <HintPath>..\packages\SQLitePCL.3.8.5.0\lib\portable-net45+sl50+win+wpa81+wp80+MonoAndroid10+MonoTouch10\SQLitePCL.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
+  </Target>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
