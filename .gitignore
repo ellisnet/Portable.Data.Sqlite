@@ -177,3 +177,4 @@ NuGetOutput/Portable.Data.Sqlite.0.8.0.nupkg
 NuGetOutput/Portable.Data.Sqlite.dll
 NuGetOutput/Portable.Data.Sqlite.XML
 NuGetOutput/SQLitePCL.dll
+/Samples/SampleApp.iOS/packages.config

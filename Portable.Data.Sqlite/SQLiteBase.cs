@@ -196,7 +196,7 @@ namespace Portable.Data.Sqlite {
         internal abstract long GetRowIdForCursor(SqliteStatement stmt, int cursor);
 
         internal abstract long LastInsertRowId { get; }
-        internal abstract long LastInsertRowIdUnsafe { get; }
+        internal abstract long LastInsertRowIdNoThreadLock { get; }
 
         internal abstract object GetValue(SqliteStatement stmt, int index, SqliteType typ);
 

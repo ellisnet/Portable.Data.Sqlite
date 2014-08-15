@@ -922,6 +922,13 @@ namespace Portable.Data.Sqlite {
         }
 
         /// <summary>
+        /// Only opens the connection if it is closed, preventing the problem of calling Open on an already Open connection.
+        /// </summary>
+        public void SafeOpen() {
+            if (_connectionState == ConnectionState.Closed) this.Open();
+        }
+
+        /// <summary>
         /// Gets/sets the default command timeout for newly-created commands.  This is especially useful for 
         /// commands used internally such as inside a SqliteTransaction, where setting the timeout is not possible.
         /// This can also be set in the ConnectionString with "Default Timeout"

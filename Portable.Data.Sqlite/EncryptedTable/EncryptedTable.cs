@@ -264,18 +264,34 @@ namespace Portable.Data.Sqlite {
                         string netType = prop.PropertyType.FullName;
                         TypeAffinity affinity = SqliteConvert.TypeToAffinity(Type.GetType(netType));
                         string dbType = "";
+                        string defaultValue = null;
+                        if (prop.HasAttribute(typeof(ColumnDefaultValueAttribute))) {
+                            defaultValue = ((ColumnDefaultValueAttribute)prop.GetCustomAttributes(typeof(ColumnDefaultValueAttribute), true).Single()).Value;
+                        }
                         switch (affinity) {
                             case TypeAffinity.Int64:
                                 dbType = "INTEGER";
+                                Int64 testInt;
+                                if (defaultValue != null && !Int64.TryParse(defaultValue, out testInt))
+                                    throw new Exception(String.Format("The default value for column [{0}] ('{1}') cannot be converted to SQLite type {2}",
+                                        columnName, defaultValue, dbType));
                                 break;
                             case TypeAffinity.Double:
                                 dbType = "REAL";
+                                double testDouble;
+                                if (defaultValue != null && !Double.TryParse(defaultValue, out testDouble))
+                                    throw new Exception(String.Format("The default value for column [{0}] ('{1}') cannot be converted to SQLite type {2}",
+                                        columnName, defaultValue, dbType));
                                 break;
                             case TypeAffinity.Text:
                                 dbType = "TEXT";
                                 break;
                             case TypeAffinity.DateTime:
                                 dbType = "DATETIME";
+                                DateTime testDate;
+                                if (defaultValue != null && !DateTime.TryParse(defaultValue, out testDate))
+                                    throw new Exception(String.Format("The default value for column [{0}] ('{1}') cannot be converted to SQLite type {2}",
+                                        columnName, defaultValue, dbType));
                                 break;
                             default:
                                 throw new Exception(String.Format("The column named '{0}' cannot be unencrypted, because the data type '{1}' cannot be used for an unencrypted column.",
@@ -291,8 +307,7 @@ namespace Portable.Data.Sqlite {
                             NetType = netType,
                             DbType = dbType,
                             IsNotNull = prop.HasAttribute(typeof(NotNullAttribute)),
-                            DefaultValue = (prop.HasAttribute(typeof(ColumnDefaultValueAttribute))) ?
-                                ((ColumnDefaultValueAttribute)prop.GetCustomAttributes(typeof(ColumnDefaultValueAttribute), true).Single()).Value : null                        
+                            DefaultValue = defaultValue
                         });
                     }
                 }
@@ -308,8 +323,17 @@ namespace Portable.Data.Sqlite {
                     sql += "Id INTEGER PRIMARY KEY AUTOINCREMENT";
                 }
                 else {
+                    string defaultValue = "";
+                    if (column.DefaultValue != null) {
+                        if (column.DbType == "INTEGER" || column.DbType == "REAL") {
+                            defaultValue = " DEFAULT " + column.DefaultValue;
+                        }
+                        else {
+                            defaultValue = " DEFAULT '" + column.DefaultValue + "'";
+                        }
+                    }
                     sql += column.ColumnName + " " + column.DbType + (column.IsNotNull ? " NOT NULL" : "") +
-                        ((column.DefaultValue != null) ? " DEFAULT " + column.DefaultValue : "");
+                        defaultValue;
                 }
             }
             sql = String.Format("CREATE TABLE IF NOT EXISTS [{0}]({1});", _tableName, sql);
@@ -328,12 +352,21 @@ namespace Portable.Data.Sqlite {
                 foreach (TableColumn column in _tableColumns.Values.OrderBy(c => c.ColumnOrder)) {
                     if (dbColumns.Where(c => (c ?? "").ToLower() == column.ColumnName.ToLower()).Count() == 0) {
                         //must add column
+                        string defaultValue = "";
+                        if (column.DefaultValue != null) {
+                            if (column.DbType == "INTEGER" || column.DbType == "REAL") {
+                                defaultValue = " DEFAULT " + column.DefaultValue;
+                            }
+                            else {
+                                defaultValue = " DEFAULT '" + column.DefaultValue + "'";
+                            }
+                        }
                         sql = String.Format("ALTER TABLE [{0}] ADD COLUMN [{1}] {2}{3}{4};",
                             _tableName,
                             column.ColumnName,
                             column.DbType,
                             (column.IsNotNull ? " NOT NULL" : ""),
-                            (column.DefaultValue != null ? " DEFAULT " + column.DefaultValue : ""));
+                            defaultValue);
                         cmd.CommandText = sql;
                         if (_dbConnection.State == ConnectionState.Closed) _dbConnection.Open();
                         cmd.ExecuteNonQuery();
@@ -452,7 +485,7 @@ namespace Portable.Data.Sqlite {
                     column = _tableColumns.Values.Where(c => c.PropertyName == property).Single();
                     columnSql += ", [" + column.ColumnName +"]";
                     valueSql += ", " + "@" + column.ColumnName;
-                    paramValues.Add("@" + column.ColumnName, _getPropertyValue(item, property));
+                    paramValues.Add("@" + column.ColumnName, _getPropertyValue(item, property) ?? column.DefaultValue);
                 }
 
                 cmd.CommandText = String.Format("INSERT INTO [{0}] ({1}) VALUES ({2});",
@@ -524,7 +557,7 @@ namespace Portable.Data.Sqlite {
                     foreach (string property in _notEncryptedPropertyNames) {
                         column = _tableColumns.Values.Where(c => c.PropertyName == property).Single();
                         sql += ", [" + column.ColumnName + "]" + " = @" + column.ColumnName;
-                        paramValues.Add("@" + column.ColumnName, _getPropertyValue(item, property));
+                        paramValues.Add("@" + column.ColumnName, _getPropertyValue(item, property) ?? column.DefaultValue);
                     }
                     sql += " WHERE [Id] = @ID;";
 

@@ -15,6 +15,7 @@
 */
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Portable.Data;
 using System.Runtime.InteropServices;
@@ -30,6 +31,13 @@ namespace Portable.Data.Sqlite.Wrapper {
         //TODO: Find a way to update this number of changes (i.e. rows affected) after a statement runs
         private int _lastChanges = 0;  //number of records changed in by last statement??
         private string _lastError = "";
+        private string _lastErrorStatement = "";
+
+        private List<SQLitePCL.SQLiteResult> _okResultMessages = new List<SQLitePCL.SQLiteResult> {
+            SQLitePCL.SQLiteResult.OK,
+            SQLitePCL.SQLiteResult.DONE,
+            SQLitePCL.SQLiteResult.ROW
+        };
 
         internal SqliteConnectionWrapper(SQLitePCL.ISQLiteConnection connection, SqliteDateFormats fmt)
             : base(connection, fmt) 
@@ -63,6 +71,10 @@ namespace Portable.Data.Sqlite.Wrapper {
 
         internal override string SqliteLastError() {
             return _lastError;
+        }
+
+        internal string SqliteLastErrorStatement() {
+            return _lastErrorStatement;
         }
 
         internal override void ClearPool() {
@@ -103,6 +115,11 @@ namespace Portable.Data.Sqlite.Wrapper {
 
                 if (stmt != null && stmt._sqlite_stmt != null) {
                     result = stmt._sqlite_stmt.Step();
+                    if (!_okResultMessages.Contains(result)) {
+                        _lastError = SqliteConvert.ToResultText(result);
+                        _lastErrorStatement = stmt._sqlStatement ?? "(none)";
+                        throw new Exception(_lastError);
+                    }
                 }
                 
                 return result;
@@ -116,7 +133,12 @@ namespace Portable.Data.Sqlite.Wrapper {
 
                 if (stmt != null && stmt._sqlite_stmt != null) {
                     SQLitePCL.SQLiteResult stmtResult = stmt._sqlite_stmt.Step();
-                    rowid = stmt._sql.LastInsertRowIdUnsafe;
+                    if (!_okResultMessages.Contains(stmtResult)) {
+                        _lastError = SqliteConvert.ToResultText(stmtResult);
+                        _lastErrorStatement = stmt._sqlStatement ?? "(none)";
+                        throw new Exception(_lastError);
+                    }
+                    rowid = stmt._sql.LastInsertRowIdNoThreadLock;
                     result = Tuple.Create(stmtResult, rowid);
                 }
 
@@ -514,7 +536,7 @@ namespace Portable.Data.Sqlite.Wrapper {
             throw new NotImplementedException();
         }
 
-        internal override long LastInsertRowIdUnsafe {
+        internal override long LastInsertRowIdNoThreadLock {
             get {
                 Int64 result = -1;
 
@@ -524,6 +546,7 @@ namespace Portable.Data.Sqlite.Wrapper {
                 }
                 catch (Exception ex) {
                     _lastError = (ex.Message ?? "").Trim();
+                    _lastErrorStatement = "Called SQLiteConnection.LastInsertRowId()";
                     result = -1;
                 }
 
@@ -534,7 +557,7 @@ namespace Portable.Data.Sqlite.Wrapper {
         internal override long LastInsertRowId {
             get {
                 lock (dbLock) {
-                    return this.LastInsertRowIdUnsafe;
+                    return this.LastInsertRowIdNoThreadLock;
                 }
             }
         }
@@ -565,6 +588,8 @@ namespace Portable.Data.Sqlite.Wrapper {
                 return result;
             }
         }
+
+
 
         public override void Dispose() {
             _sqliteDbConnection = null;

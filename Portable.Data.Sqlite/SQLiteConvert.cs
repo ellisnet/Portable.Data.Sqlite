@@ -694,6 +694,117 @@ namespace Portable.Data.Sqlite {
       new SqliteTypeNames("TIMESTAMP", DbType.DateTime),
       new SqliteTypeNames("DATETIME", DbType.DateTime),
     };
+
+        /// <summary>
+        /// Translates a SQLite result message into a helpful text description (note: documention messages is a work in progress).
+        /// </summary>
+        /// <param name="result">The SQLite result to translate</param>
+        /// <returns>Text description</returns>
+        public static string ToResultText(SQLitePCL.SQLiteResult result) {
+            string resultText = "An unexpected SQLite result was encountered";
+
+            switch (result) {
+                case SQLitePCL.SQLiteResult.ABORT:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.AUTH:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.BUSY:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.CANTOPEN:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.CONSTRAINT:
+                    resultText = "A SQLite table/column constraint violation occurred.";
+                    break;
+                case SQLitePCL.SQLiteResult.CORRUPT:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.DONE:
+                    resultText = "A SQLite DONE result was returned.";
+                    break;
+                case SQLitePCL.SQLiteResult.EMPTY:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.ERROR:
+                    resultText = "A SQLite ERROR result was returned.";
+                    break;
+                case SQLitePCL.SQLiteResult.FORMAT:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.FULL:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.INTERNAL:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.INTERRUPT:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.IOERR:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.LOCKED:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.MISMATCH:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.MISUSE:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.NOLFS:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.NOMEM:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.NOTADB:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.NOTFOUND:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.NOTICE:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.OK:
+                    resultText = "A SQLite OK result was returned.";
+                    break;
+                case SQLitePCL.SQLiteResult.PERM:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.PROTOCOL:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.RANGE:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.READONLY:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.ROW:
+                    resultText = "A SQLite ROW result was returned.";
+                    break;
+                case SQLitePCL.SQLiteResult.SCHEMA:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.TOOBIG:
+                    resultText += ": " + result.ToString();
+                    break;
+                case SQLitePCL.SQLiteResult.WARNING:
+                    resultText += ": " + result.ToString();
+                    break;
+                default:
+                    resultText += ".";
+                    break;
+            }
+
+            return resultText;
+        }
+
     }
 
     /// <summary>
@@ -935,6 +1046,7 @@ namespace Portable.Data.Sqlite {
             return NetType.Object;
         }
     }
+
 }
 
 //#if PORTABLE

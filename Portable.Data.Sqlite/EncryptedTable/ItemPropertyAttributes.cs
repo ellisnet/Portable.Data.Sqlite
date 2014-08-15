@@ -52,7 +52,7 @@ namespace Portable.Data.Sqlite {
         private string _value;
 
         /// <summary>
-        /// The default value for the column, if a NULL value is provided during record creation
+        /// The default value for the column, if a column value is not specified during record creation
         /// </summary>
         public string Value {
             get { return _value; }
@@ -61,8 +61,10 @@ namespace Portable.Data.Sqlite {
         /// <summary>
         /// Creates an instance of the attribute with the specified value
         /// </summary>
-        /// <param name="value">The value to use as default - IMPORTANT: For non-numeric values, surround with single quotes - e.g. 'MyDefault'</param>
+        /// <param name="value">The value to use as default</param>
         public ColumnDefaultValueAttribute(string value) {
+            if (value == null) throw new ArgumentNullException("value", "Column default value cannot be null.");
+            if (value.Contains("'")) throw new ArgumentException("Column default values cannot contain single quotes.", "value");
             _value = value;
         }
     }
