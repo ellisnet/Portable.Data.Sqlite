@@ -2,23 +2,25 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
     <metadata>
         <id>Portable.Data.Sqlite</id>
-        <version>0.9.0</version>
+        <version>0.9.1</version>
         <title>Portable ADO-style SQLite with Encryption</title>
         <authors>Jeremy Ellis</authors>
         <owners>Ellisnet</owners>
         <projectUrl>https://github.com/ellisnet/Portable.Data.Sqlite</projectUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <description>Portable cross-platform ADO-style SQLite library enabling table-record-level and table-column-level encryption.</description>
+        <releaseNotes>v0.9.1 - Updated SQLitePCL dependency information in NuGet package (no code changes from 0.9.0)</releaseNotes>
         <copyright>Copyright 2014 Ellisnet</copyright>
         <language>en-US</language>
         <tags>portable, data, ado, sqlite, encryption, database, security, pcl</tags>
         <dependencies>
-            <dependency id="SQLitePCL" version="3.8.0" />
+            <dependency id="SQLitePCL" version="3.8.5" />
         </dependencies>
     </metadata>
     <files>
         <file src="NuGetOutput\Portable.Data.dll" target="lib\portable-net45+wp8+win8+MonoAndroid10+MonoTouch10\Portable.Data.dll" />
         <file src="NuGetOutput\Portable.Data.Sqlite.dll" target="lib\portable-net45+wp8+win8+MonoAndroid10+MonoTouch10\Portable.Data.Sqlite.dll" />
         <file src="NuGetOutput\Portable.Data.Sqlite.XML" target="lib\portable-net45+wp8+win8+MonoAndroid10+MonoTouch10\Portable.Data.Sqlite.XML" />
+        <file src="NuGetOutput\readme.txt" target="readme.txt" />
     </files>
 </package>
