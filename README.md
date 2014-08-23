@@ -11,7 +11,7 @@ This is a portable cross-platform ADO provider for SQLite databases, featuring t
     * Xamarin.Android
   2. Runs on top of (and requires) the Portable Class Library for SQLite (SQLitePCL) from MSOpenTech - info available [here](http://sqlitepcl.codeplex.com/) - NuGet package available [here](http://www.nuget.org/packages/SQLitePCL)
   3. Provides access to SQLite databases via the native built-into-the-operating-system implementations of SQLite for the platforms listed above (where an implementation exists).
-  4. Provides a PCL-based ADO-style way of interacting with SQLite databases; based on a portable (PCL) implementation of Mono.Data.Sqlite that has been tweaked by Matthew Leibowitz (@mattleibow) - available [here](https://github.com/mattleibow/Mono.Data.Sqlite)
+  4. Provides a PCL-based ADO-style way of interacting with SQLite databases; based on a portable (PCL) implementation of Mono.Data.Sqlite that was adapted by Matthew Leibowitz (@mattleibow) - available [here](https://github.com/mattleibow/Mono.Data.Sqlite)
   5. Enables **easy table record-level and column-level encryption of data** in your SQLite database.
 
 The developer of this library welcomes all feedback, suggestions, issue/bug reports, and pull requests. Please log questions and issues in the Portable.Data.Sqlite GitHub *Issues* section - available [here](https://github.com/ellisnet/Portable.Data.Sqlite/issues)
@@ -28,8 +28,8 @@ Since I am adding quite a lot of information to this readme file, here is an out
 
   1. Setting up SQLitePCL and implementing *IObjectCryptEngine* - the only potentially difficult parts of using the library.  May as well cover those up front...
   2. Explanation of sample projects in the Samples folder.
-  3. Example code showing use of the library Part 1: Doing ADO stuff - Creating SQLite-based DbConnections, using SQLite versions of DbCommand and DbDataReader.  Also included: sample code for encrypting a single column in a SQLite table.
-  4. Example code showing use of the library Part 2: Using EncryptedTable&lt;T&gt; - How to create an object in your code that will have a table where all of the record data is encrypted, how to read and write values, and how to perform searches of the data without the need to decrypt every object in the table.
+  3. Example code showing use of the library, Part 1: Doing ADO stuff - Creating SQLite-based DbConnections, using SQLite versions of DbCommand and DbDataReader.  Also included: sample code for encrypting a single column in a SQLite table.
+  4. Example code showing use of the library, Part 2: Using EncryptedTable&lt;T&gt; - How to create an object in your code that will have a table where all of the record data is encrypted, how to read and write values, and how to perform searches of the data without the need to decrypt every object in the table.
   5. Information about storing your SQLite database password securely on the various platforms
   6. How to use this library asynchronously, using *async/await*
   7. How to use this library with Xamarin.Forms
@@ -133,15 +133,15 @@ public class SimpleAesCryptEngine : IObjectCryptEngine {
 
 Explanation of Sample Projects
 ------------------------------
-In the Samples folder of this repository you will find the folders listed below, with samples for the platforms listed above:  Windows desktop (with .NET Framework 4.5 or higher); Windows Runtime (a.k.a. Windows Store) 8 and higher; Windows Phone 8 and higher (sample coming soon); Xamarin.iOS; Xamarin.Android
+In the Samples folder of this repository you will find the folders listed below, with samples for each of the supported platforms:  Windows desktop (with .NET Framework 4.5 or higher); Windows Runtime (a.k.a. Windows Store) 8 and higher; Windows Phone 8 and higher (sample coming soon); Xamarin.iOS; and Xamarin.Android.
 
-These are no-frills *File - New Project* projects where I added some code to the initial "Window/Page/Activity/ViewController" Load event to create a SQLite database, and add some tables and records to it.  There is nothing to see in the UI - to check things out, you should read the code and then see what is happening in the Output window of your IDE when you run the application in Debug configuration.
+These are no-frills *File - New Project* projects where I added some code to the initial "Window/Page/Activity/ViewController" Load event to create a SQLite database, and then create (and manipulate) some tables and records in it.  There is nothing to see in the UI - to check things out, you should read the code and then see what is happening in the Output window of your IDE when you run the application in Debug configuration.
 
-If you want to see exactly what code I added to the *File - New Project* for demonstrating SQLite functionality, search for *ADDED TO SAMPLE TO DEMONSTRATE Portable.Data.Sqlite*.  Any code that I added to the automatically generated project files is tagged with that comment.
+If you want to see exactly what code I added to each *File - New Project* for demonstrating SQLite functionality, search for *ADDED TO SAMPLE TO DEMONSTRATE Portable.Data.Sqlite*.  Any code that I added to the automatically generated project files is tagged with that comment.
 
 Samples sub-folders:
   * SqliteSampleCode - code that is shared (via file linking) by all projects, includes a class - *SampleDataItem* - with detailed comments about how to create an object for use with EncryptedTable&lt;T&gt;
-  * SampleApp.Wpf - a sample project for Windows desktop (WPF) with .NET Framework 4.5 or higher. Most of the sample code is in *MainWindow.xaml.cs*, with some application-level stuff in the *App.xaml.cs* file. I find this one to be the most helpful for development/testing, because it is easy for me to examine the SQLite database file using Navicat for SQLite, and see what is happening in the database.  Navicat for SQLite is available [here](http://www.navicat.com/products/navicat-for-sqlite)
+  * SampleApp.Wpf - a sample project for Windows desktop (WPF) with .NET Framework 4.5 or higher. Most of the sample code is in *MainWindow.xaml.cs*, with some application-level stuff in the *App.xaml.cs* file. I find this one to be the most helpful for development/testing, because it is easy for me to examine the SQLite database file using Navicat for SQLite, and see what is happening in the database.  Navicat for SQLite is available [here](http://www.navicat.com/products/navicat-for-sqlite) - there is also an excellent free SQLite database tool available [here](http://sqlitebrowser.org/)
   * SampleApp.Android - a sample project for use with Xamarin.Android, with the sample code in *Main.Activity.cs*
   * SampleApp.iOS - a sample project for use with Xamarin.iOS, with the sample code in *SampleApp.iOSViewController.cs*, and some application-level code in *AppDelegate.cs*
   * SampleApp.WinStore - a sample project for use with Windows 8.1 and higher (i.e. a "metro"-style app). Most of the sample code is in *MainPage.xaml.cs*, with some application-level stuff in the *App.xaml.cs* file.
@@ -149,11 +149,90 @@ Samples sub-folders:
 
 Examples Part 1: Doing ADO Stuff
 --------------------------------
-(Working on these right now - hopefully available later today - 8/23/2014)
+Note: This library doesn't have a "full" implementation of ADO.NET as you might be used to with Microsoft SQL Server (System.Data.SqlClient).  This is partly due to limitations of the versions of SQLite that ship with mobile devices, partly due to limitations of the SQLitePCL library, and partly... well... things just haven't been implemented and/or tested yet.  There is some code relating to Transactions for example (Portable.Data.Transactions) that may do some things, but I have ignored this and have done **zero testing** with it.  Mainly, I stick to using DbConnections (i.e. SqliteAdoConnection), DbCommands (i.e. SqliteCommand) and DbDataReaders (i.e. SqliteDataReader).  Those are all you need for most SQLite operations.
+
+Step 1) Opening a connection to our database (database file will be created if it doesn't exist), creating a table and adding/reading (i.e. INSERTing/SELECTing) a record.
+
+```c#
+//using Portable.Data.Sqlite;
+
+string sql;
+string databasePath = System.IO.Path.Combine(pathToDatabaseFolder, "mydatabase.sqlite");
+using (IObjectCryptEngine myCryptEngine = new MyCryptEngine("my encryption password")) 
+{
+    using (var myConnection = new SqliteAdoConnection(
+        new SQLitePCL.SQLiteConnection(databasePath), myCryptEngine)) 
+    {
+        sql = "CREATE TABLE IF NOT EXISTS [myTableName] " 
+            + "(Id INTEGER PRIMARY KEY AUTOINCREMENT, FirstWord TEXT, SecondWord TEXT);";
+        using (var myCommand = new SqliteCommand(sql, myConnection)) 
+		{
+            myConnection.SafeOpen(); //myConnection.SafeOpen() is the same as 
+                //  myConnection.Open() - but doesn't throw an exception if the connection
+                //  is already open.
+            myCommand.ExecuteNonQuery();
+        }
+		//NOTE: All of the other example SQL in this section - Part 1: ADO stuff - goes here
+    }
+}
+```
+Here is what the above code does:
+We identified a new SQLite database [file] called *mydatabase.sqlite* in the folder specified in *pathToDatabaseFolder*.  The recommended folder varies based on the platform (Windows Store, iOS, Android, etc.)  I will probably add a list of the recommended folder paths for each platform here; but at the moment, I haven't verified those.  You can look at the examples in the Samples folder to see which folders they are using.
+Next we created an instance of *MyCryptEngine* which is our implementation of *IObjectCryptEngine* as described above, with our secret password.
+Next we created an instance of *SqliteAdoConnection* based on a *SQLitePCL.SQLiteConnection* to our database [file]; and we passed in our crypt engine. Creating the new *SQLitePCL.SQLiteConnection*, with the path to our file, created our database file if it didn't already exist.
+The *sql = "CREATE TABLE IF NOT EXISTS..."* line is our SQL statement to create our new table.  Using the *SqliteCommand.ExecuteNonQuery()* line, we can send pretty much any SQLite-legal SQL statements to our database.  Note that SQLite SQL is not the same as the T-SQL that you use with Microsoft's SQL products.  For example - as you will see below - instead of *SELECT TOP 1 * FROM myTableName* (T-SQL), we will use *SELECT * FROM myTableName LIMIT 1* (SQLite SQL).  Lots of information about SQLite's flavor of SQL is available [here](http://www.sqlite.org/lang.html)
+Finally, we create a *SqliteCommand* with our SQL statement and connection, open the database connection and execute it.
+
+```c#
+        //Add/insert a record
+        sql = "INSERT INTO [myTableName](FirstWord, SecondWord) " +
+            "VALUES (@firstword, @secondword);";
+        int newRowId;
+        using (var myCommand = new SqliteCommand(sql, myConnection)) 
+        {
+            myCommand.Parameters.Add(new SqliteParameter("@firstword", "Hello"));
+            myCommand.Parameters.Add(new SqliteParameter("@secondword", "SQLite"));
+            myConnection.SafeOpen();
+            newRowId = (int)myCommand.ExecuteReturnRowId();
+        }
+
+        //Select a record
+        sql = "SELECT * FROM [myTableName] WHERE [Id] = @rowid;";
+        using (var myCommand = new SqliteCommand(sql, myConnection)) 
+        {
+            myCommand.Parameters.Add(new SqliteParameter("@rowid", value: newRowId));
+            myConnection.SafeOpen();
+            using (SqliteDataReader myReader = myCommand.ExecuteReader()) 
+            {
+                while (myReader.Read()) 
+                {
+                    Console.WriteLine("{0} {1}!", myReader["FirstWord"].ToString() ?? "",
+                        myReader["SecondWord"].ToString() ?? ""); // Output: Hello SQLite!
+                }
+            }
+        }
+
+        //Select the 'TOP 1' record - via 'LIMIT 1'
+        sql = "SELECT [Id] FROM [myTableName] ORDER BY [Id] DESC LIMIT 1;";
+        using (var myCommand = new SqliteCommand(sql, myConnection)) 
+        {
+            myConnection.SafeOpen();
+            int highestRowId = Convert.ToInt32(myCommand.ExecuteScalar());
+            Console.Write("The highest [Id] column value so far is: {0}", highestRowId);
+        }
+```
+Here is what the above code does:
+First we INSERTed a row into our table with the values ('*Hello*', '*SQLite*').  We used *SQLiteCommand.ExecuteReturnRowId()* so we would get back the RowId (i.e. the value of our INTEGER PRIMARY KEY [Id] column). Note that SQLite mostly deals in the long/Int64 datatype for Integer values, so that is what *SQLiteCommand.ExecuteReturnRowId()* returned, and we cast it as an int/Int32.
+Next we SELECTed the row using *SqliteCommand.ExecuteReader()* to create a *SqliteDataReader*, and then *SqliteDataReader.Read()* to iterate through the rows of our recordset.  If more than row had been returned, the *while (myReader.Read()) {}* loop would repeat for each row - i.e. *SqliteDataReader.Read()* returns false when there are no more rows.
+Finally, we used *SqliteCommand.ExecuteScalar()* to get a single value. It returns the value of the first column of the first returned row. But *SqliteCommand.ExecuteScalar()* just returns a *System.Object*; it doesn't know what datatype it is returning, so we had to convert that into an Integer.
+
+Believe it or not, you can do almost everything you could want in your SQLite database with just the above code - and some knowledge of the [SQLite flavor of SQL](http://www.sqlite.org/lang.html).
+
+Step 2) Working with an encrypted column - in progress...
 
 Examples Part 2: Using EncryptedTable&lt;T&gt;
 ----------------------------------------
-(Working on these right now - hopefully available later today - 8/23/2014)
+(Working on these right now - hopefully available later today or tomorrow - 8/24/2014)
 
 Information about Storing your SQLite Database Password Securely
 ----------------------------------------------------------------
