@@ -696,7 +696,7 @@ namespace Portable.Data.Sqlite {
     };
 
         /// <summary>
-        /// Translates a SQLite result message into a helpful text description (note: documention messages is a work in progress).
+        /// Translates a SQLite result message into a helpful text description (note: creating these helpful text descriptions is currently a work-in-progress).
         /// </summary>
         /// <param name="result">The SQLite result to translate</param>
         /// <returns>Text description</returns>

@@ -11,19 +11,33 @@ This is a portable cross-platform ADO provider for SQLite databases, featuring t
     * Xamarin.Android
   2. Runs on top of (and requires) the Portable Class Library for SQLite (SQLitePCL) from MSOpenTech - info available [here](http://sqlitepcl.codeplex.com/) - NuGet package available [here](http://www.nuget.org/packages/SQLitePCL)
   3. Provides access to SQLite databases via the native built-into-the-operating-system implementations of SQLite for the platforms listed above (where an implementation exists).
-  4. Provides a PCL-based ADO-style way of interacting with SQLite databases - based on a portable (PCL) implementation of Mono.Data.Sqlite available [here](https://github.com/mattleibow/Mono.Data.Sqlite)
+  4. Provides a PCL-based ADO-style way of interacting with SQLite databases; based on a portable (PCL) implementation of Mono.Data.Sqlite that has been tweaked by Matthew Leibowitz (@mattleibow) - available [here](https://github.com/mattleibow/Mono.Data.Sqlite)
   5. Enables **easy table record-level and column-level encryption of data** in your SQLite database.
 
 The developer of this library welcomes all feedback, suggestions, issue/bug reports, and pull requests. Please log questions and issues in the Portable.Data.Sqlite GitHub *Issues* section - available [here](https://github.com/ellisnet/Portable.Data.Sqlite/issues)
 
 Important Notes About Encryption
 --------------------------------
-  1. For various reasons, this library **does not include** an encryption algorithm.  All operating systems listed above have built-in AES encryption that can be used with this library (as an example of one type of encryption algorithm that works well).  It is up to you to specify the algorithm to use by implementing the *IObjectCryptEngine* interface.  This allows you to choose exactly how your data will be encrypted.  Taking a well understood encryption algorithm and implementing your own *encryption engine* should not be too difficult; see detailed information below.
+  1. For various reasons, this library **does not include an encryption algorithm**.  All operating systems listed above have built-in AES encryption that can be used with this library (as an example of one type of encryption algorithm that works well).  It is up to you to specify the algorithm to use by implementing the *IObjectCryptEngine* interface.  This allows you to choose exactly how your data will be encrypted.  Taking a well understood encryption algorithm and implementing your own *encryption engine* should not be too difficult; see detailed information below.
   2. This library **does not implement full database encryption** - for that, please investigate SQLCipher - available [here](http://sqlcipher.net/)  
 It is up to you - the developer who is using this library - to decide which data in the database to encrypt; and which data not to.  You can encrypt any column in any table, and you can encrypt an entire table (i.e. all of the records in a table).
 
-The (Potentially) Difficult Parts Up Front:
--------------------------------------------
+Table of Contents
+-----------------
+Since I am adding quite a lot of information to this readme file, here is an outline of the sections below - to make finding what you are looking for easier:
+
+  1. Setting up SQLitePCL and implementing *IObjectCryptEngine* - the only potentially difficult parts of using the library.  May as well cover those up front...
+  2. Explanation of sample projects in the Samples folder.
+  3. Example code showing use of the library Part 1: Doing ADO stuff - Creating SQLite-based DbConnections, using SQLite versions of DbCommand and DbDataReader.  Also included: sample code for encrypting a single column in a SQLite table.
+  4. Example code showing use of the library Part 2: Using EncryptedTable&lt;T&gt; - How to create an object in your code that will have a table where all of the record data is encrypted, how to read and write values, and how to perform searches of the data without the need to decrypt every object in the table.
+  5. Information about storing your SQLite database password securely on the various platforms
+  6. How to use this library asynchronously, using *async/await*
+  7. How to use this library with Xamarin.Forms
+  8. How to use this library with MvvmCross
+  9. Answers to frequently asked questions (FAQ)
+
+Dealing with the (Potentially) Difficult Parts Up Front
+-------------------------------------------------------
 So let's just get straight to the potentially difficult parts.  They are:
 
   1. It may be difficult to set up SQLitePCL (i.e. the Portable Class Library for SQLite mentioned above) if you are developing for a platform that doesn't come with SQLite built-in - like Windows (desktop) or Windows Store.  You have to install an add-on for Visual Studio and/or download a .DLL or two.  But there is excellent information available on the SQLitePCL CodePlex site - [documentation here](https://sqlitepcl.codeplex.com/documentation)  
@@ -117,5 +131,46 @@ public class SimpleAesCryptEngine : IObjectCryptEngine {
 }
 ```
 
-Examples of Using the Library Coming Soon...
---------------------------------------------
+Explanation of Sample Projects
+------------------------------
+In the Samples folder of this repository you will find the folders listed below, with samples for the platforms listed above:  Windows desktop (with .NET Framework 4.5 or higher); Windows Runtime (a.k.a. Windows Store) 8 and higher; Windows Phone 8 and higher (sample coming soon); Xamarin.iOS; Xamarin.Android
+
+These are no-frills *File - New Project* projects where I added some code to the initial "Window/Page/Activity/ViewController" Load event to create a SQLite database, and add some tables and records to it.  There is nothing to see in the UI - to check things out, you should read the code and then see what is happening in the Output window of your IDE when you run the application in Debug configuration.
+
+If you want to see exactly what code I added to the *File - New Project* for demonstrating SQLite functionality, search for *ADDED TO SAMPLE TO DEMONSTRATE Portable.Data.Sqlite*.  Any code that I added to the automatically generated project files is tagged with that comment.
+
+Samples sub-folders:
+  * SqliteSampleCode - code that is shared (via file linking) by all projects, includes a class - *SampleDataItem* - with detailed comments about how to create an object for use with EncryptedTable&lt;T&gt;
+  * SampleApp.Wpf - a sample project for Windows desktop (WPF) with .NET Framework 4.5 or higher. Most of the sample code is in *MainWindow.xaml.cs*, with some application-level stuff in the *App.xaml.cs* file. I find this one to be the most helpful for development/testing, because it is easy for me to examine the SQLite database file using Navicat for SQLite, and see what is happening in the database.  Navicat for SQLite is available [here](http://www.navicat.com/products/navicat-for-sqlite)
+  * SampleApp.Android - a sample project for use with Xamarin.Android, with the sample code in *Main.Activity.cs*
+  * SampleApp.iOS - a sample project for use with Xamarin.iOS, with the sample code in *SampleApp.iOSViewController.cs*, and some application-level code in *AppDelegate.cs*
+  * SampleApp.WinStore - a sample project for use with Windows 8.1 and higher (i.e. a "metro"-style app). Most of the sample code is in *MainPage.xaml.cs*, with some application-level stuff in the *App.xaml.cs* file.
+  * SampleApp.WinPhone - (COMING SOON) a sample project for use with Windows Phone 8 and higher
+
+Examples Part 1: Doing ADO Stuff
+--------------------------------
+(Working on these right now - hopefully available later today - 8/23/2014)
+
+Examples Part 2: Using EncryptedTable&lt;T&gt;
+----------------------------------------
+(Working on these right now - hopefully available later today - 8/23/2014)
+
+Information about Storing your SQLite Database Password Securely
+----------------------------------------------------------------
+Coming soon...
+
+How to Use this Library Asynchronously Using *async/await*
+----------------------------------------------------------
+Coming soon...
+
+How to Use this Library with Xamarin.Forms
+------------------------------------------
+Coming soon...
+
+How to Use this Library with MvvmCross
+--------------------------------------
+Coming soon...
+
+Frequently Asked Questions
+--------------------------
+Answers coming when there are some questions...

@@ -89,19 +89,26 @@ namespace Portable.Data.Sqlite.Wrapper {
                 strRemain = null;
                 strSql = (strSql ?? "").Trim();
                 do {
-	                if (strSql == "") break;
-                    while (strSql.Length > 1 && strSql.Substring(0, 1) == ";") {
-                        strSql = strSql.Substring(1).Trim();
-                    }
-                    if (strSql == "" || strSql == ";") break;
+                    try {
+                        if (strSql == "") break;
+                        while (strSql.Length > 1 && strSql.Substring(0, 1) == ";") {
+                            strSql = strSql.Substring(1).Trim();
+                        }
+                        if (strSql == "" || strSql == ";") break;
 
-                    if (strSql.IndexOf(";") > 0 && strSql.IndexOf(";") < (strSql.Length - 1)) {
-                        strSql = strSql.Substring(0, (strSql.IndexOf(";") + 1));
-                        strRemain = strSql.Substring(strSql.IndexOf(";") + 1);
-                    }
+                        if (strSql.IndexOf(";") > 0 && strSql.IndexOf(";") < (strSql.Length - 1)) {
+                            strSql = strSql.Substring(0, (strSql.IndexOf(";") + 1));
+                            strRemain = strSql.Substring(strSql.IndexOf(";") + 1);
+                        }
 
-                    var stmt = _sqliteDbConnection.Prepare(strSql);
-                    result = new SqliteStatement(this, stmt, strSql, previous);
+                        var stmt = _sqliteDbConnection.Prepare(strSql);
+                        result = new SqliteStatement(this, stmt, strSql, previous);
+                    }
+                    catch (Exception ex) {
+                        _lastError = ex.Message ?? "No exception info";
+                        _lastErrorStatement = strSql;
+                        throw;
+                    }
 
 	            } while (false);
 
