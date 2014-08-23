@@ -19,8 +19,8 @@ namespace SampleApp.Shared.SqliteSampleCode {
         string _zipCode;
         List<Tuple<DateTime, string>> _majorEvents = new List<Tuple<DateTime, string>>();
 
-        //NOTE THAT ALL COLUMNS IN THIS TABLE WILL BE ENCRYPTED EXCEPT ANY COLUMNS SPECIFICALLY
-        //  MARKED [NotEncrypted]
+        //NOTE THAT ALL COLUMNS IN THE SQLITE TABLE THAT IS CREATED FOR THIS OBJECT TYPE 
+        //  WILL BE ENCRYPTED EXCEPT ANY COLUMNS SPECIFICALLY MARKED [NotEncrypted]
 
         //The following three property/columns in the encrypted-to-be-created will be "searchable"
         //  - the data WILL BE encrypted, but you will be able to search these columns without
@@ -49,8 +49,8 @@ namespace SampleApp.Shared.SqliteSampleCode {
 
         //  [NotEncrypted] - store the value of this property in a non-encrypted column for easy querying
         //  [ColumnName] - specifies the name of the table column, instead of using the default - which would
-        //    be [StateAbbreviation]
-        //  [NotNull] - the table column created for this property should be marked NOT NULL
+        //    be 'StateAbbreviation' in this case
+        //  [NotNull] - the SQLite table column created for this property should be marked NOT NULL
         //  [ColumnDefaultValue] - use the specified value for the default value of the column.
 
         [NotEncrypted, ColumnName("State"), NotNull, ColumnDefaultValue("MN")]
