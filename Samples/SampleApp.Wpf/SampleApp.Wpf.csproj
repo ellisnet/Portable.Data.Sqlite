@@ -64,6 +64,9 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
+    <Compile Include="..\SqliteSampleCode\ExampleData.cs">
+      <Link>SqliteSampleCode\ExampleData.cs</Link>
+    </Compile>
     <Compile Include="..\SqliteSampleCode\SampleDataItem.cs">
       <Link>SqliteSampleCode\SampleDataItem.cs</Link>
     </Compile>

@@ -75,6 +75,17 @@ namespace SampleApp.Shared.SqliteSampleCode {
             set { _majorEvents = value ?? new List<Tuple<DateTime, string>>(); }
         }
 
+        //A little static method to check and see how many records are in the encrypted table,
+        //  that I will use multiple times in the sample code.
+        //  No need to include something like this in your implementations of EncryptedTableItem
+        public static long GetNumRecords(SqliteAdoConnection dbConn, string tableName) {
+            string sql = "SELECT COUNT(*) FROM " + tableName + ";";
+            using (var cmd = new SqliteCommand(sql, dbConn)) {
+                dbConn.SafeOpen();
+                return (long)cmd.ExecuteScalar();
+            }
+        }
+
     }
 
 }

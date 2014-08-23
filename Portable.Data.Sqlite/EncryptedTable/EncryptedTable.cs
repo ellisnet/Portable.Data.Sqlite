@@ -205,7 +205,7 @@ namespace Portable.Data.Sqlite {
         /// <summary>
         /// A dictionary of SQLite table columns in the table associated with the encrypted table object
         /// </summary>
-        public static Dictionary<string, TableColumn> TableColumns {
+        public Dictionary<string, TableColumn> TableColumns {
             get { return _tableColumns; }
         }
 
@@ -213,7 +213,7 @@ namespace Portable.Data.Sqlite {
             lock (setupLock) {
                 if (_tableColumns == null) {
                     _tableColumns = new Dictionary<string, TableColumn>();
-                    _tableColumns.Add("Id", new TableColumn { 
+                    _tableColumns.Add("Id", new TableColumn {
                         PropertyName = "Id",
                         ColumnName = "Id",
                         ColumnOrder = 0,
@@ -232,83 +232,83 @@ namespace Portable.Data.Sqlite {
                         DbType = "ENCRYPTED",
                         NetType = "System.String"
                     });
-                }
 
-                var props = typeof(T).GetProperties();
-                int columnIndex = 0;
-                foreach (PropertyInfo prop in props) {
-                    if (prop.HasAttribute(typeof(SearchableAttribute))) {
-                        if (prop.HasAttribute(typeof(NotEncryptedAttribute)))
-                            throw new Exception("A property with the attribute 'Searchable' cannot have the attribute 'NotEncrypted'.");
-                        if (prop.HasAttribute(typeof(NotNullAttribute)))
-                            throw new Exception("A property with the attribute 'Searchable' cannot have the attribute 'NotNull'.");
-                        if (prop.HasAttribute(typeof(ColumnDefaultValueAttribute)))
-                            throw new Exception("A property with the attribute 'Searchable' cannot have the attribute 'DefaultValue'.");
-                        if (prop.HasAttribute(typeof(ColumnNameAttribute)))
-                            throw new Exception("A property with the attribute 'Searchable' cannot have the attribute 'ColumnName'.");
-                    }
-                    else if (prop.HasAttribute(typeof(NotEncryptedAttribute))) {
-                        string columnName = prop.Name;
-                        if (prop.HasAttribute(typeof(ColumnNameAttribute))) {
-                            columnName = ((ColumnNameAttribute)prop.GetCustomAttributes(typeof(ColumnNameAttribute), true).Single()).Name;
+                    var props = typeof(T).GetProperties();
+                    int columnIndex = 0;
+                    foreach (PropertyInfo prop in props) {
+                        if (prop.HasAttribute(typeof(SearchableAttribute))) {
+                            if (prop.HasAttribute(typeof(NotEncryptedAttribute)))
+                                throw new Exception("A property with the attribute 'Searchable' cannot have the attribute 'NotEncrypted'.");
+                            if (prop.HasAttribute(typeof(NotNullAttribute)))
+                                throw new Exception("A property with the attribute 'Searchable' cannot have the attribute 'NotNull'.");
+                            if (prop.HasAttribute(typeof(ColumnDefaultValueAttribute)))
+                                throw new Exception("A property with the attribute 'Searchable' cannot have the attribute 'DefaultValue'.");
+                            if (prop.HasAttribute(typeof(ColumnNameAttribute)))
+                                throw new Exception("A property with the attribute 'Searchable' cannot have the attribute 'ColumnName'.");
                         }
-                        string tempName = columnName;
-                        Tuple<bool, string> checkResult = TableColumn.CheckColumnName(ref tempName);
-                        if (!checkResult.Item1)
-                            throw new Exception(String.Format("Problem with column name '{0}' - {1}", tempName, checkResult.Item2 ?? "Unknown"));
-                        columnName = tempName;
+                        else if (prop.HasAttribute(typeof(NotEncryptedAttribute))) {
+                            string columnName = prop.Name;
+                            if (prop.HasAttribute(typeof(ColumnNameAttribute))) {
+                                columnName = ((ColumnNameAttribute)prop.GetCustomAttributes(typeof(ColumnNameAttribute), true).Single()).Name;
+                            }
+                            string tempName = columnName;
+                            Tuple<bool, string> checkResult = TableColumn.CheckColumnName(ref tempName);
+                            if (!checkResult.Item1)
+                                throw new Exception(String.Format("Problem with column name '{0}' - {1}", tempName, checkResult.Item2 ?? "Unknown"));
+                            columnName = tempName;
 
-                        if ((new string[] { "id", "encrypted_object", "encrypted_searchable" }).Contains(columnName.ToLower()))
-                            throw new Exception(String.Format("'{0}' is a reserved column name and cannot be re-used.", columnName));
+                            if ((new string[] { "id", "encrypted_object", "encrypted_searchable" }).Contains(columnName.ToLower()))
+                                throw new Exception(String.Format("'{0}' is a reserved column name and cannot be re-used.", columnName));
 
-                        string netType = prop.PropertyType.FullName;
-                        TypeAffinity affinity = SqliteConvert.TypeToAffinity(Type.GetType(netType));
-                        string dbType = "";
-                        string defaultValue = null;
-                        if (prop.HasAttribute(typeof(ColumnDefaultValueAttribute))) {
-                            defaultValue = ((ColumnDefaultValueAttribute)prop.GetCustomAttributes(typeof(ColumnDefaultValueAttribute), true).Single()).Value;
+                            string netType = prop.PropertyType.FullName;
+                            TypeAffinity affinity = SqliteConvert.TypeToAffinity(Type.GetType(netType));
+                            string dbType = "";
+                            string defaultValue = null;
+                            if (prop.HasAttribute(typeof(ColumnDefaultValueAttribute))) {
+                                defaultValue = ((ColumnDefaultValueAttribute)prop.GetCustomAttributes(typeof(ColumnDefaultValueAttribute), true).Single()).Value;
+                            }
+                            switch (affinity) {
+                                case TypeAffinity.Int64:
+                                    dbType = "INTEGER";
+                                    Int64 testInt;
+                                    if (defaultValue != null && !Int64.TryParse(defaultValue, out testInt))
+                                        throw new Exception(String.Format("The default value for column [{0}] ('{1}') cannot be converted to SQLite type {2}",
+                                            columnName, defaultValue, dbType));
+                                    break;
+                                case TypeAffinity.Double:
+                                    dbType = "REAL";
+                                    double testDouble;
+                                    if (defaultValue != null && !Double.TryParse(defaultValue, out testDouble))
+                                        throw new Exception(String.Format("The default value for column [{0}] ('{1}') cannot be converted to SQLite type {2}",
+                                            columnName, defaultValue, dbType));
+                                    break;
+                                case TypeAffinity.Text:
+                                    dbType = "TEXT";
+                                    break;
+                                case TypeAffinity.DateTime:
+                                    dbType = "DATETIME";
+                                    DateTime testDate;
+                                    if (defaultValue != null && !DateTime.TryParse(defaultValue, out testDate))
+                                        throw new Exception(String.Format("The default value for column [{0}] ('{1}') cannot be converted to SQLite type {2}",
+                                            columnName, defaultValue, dbType));
+                                    break;
+                                default:
+                                    throw new Exception(String.Format("The column named '{0}' cannot be unencrypted, because the data type '{1}' cannot be used for an unencrypted column.",
+                                        columnName, netType));
+                                //break;
+                            }
+
+                            columnIndex++;
+                            _tableColumns.Add(columnName, new TableColumn {
+                                ColumnName = columnName,
+                                ColumnOrder = (columnIndex > 199) ? Convert.ToByte(199) : Convert.ToByte(columnIndex),
+                                PropertyName = prop.Name,
+                                NetType = netType,
+                                DbType = dbType,
+                                IsNotNull = prop.HasAttribute(typeof(NotNullAttribute)),
+                                DefaultValue = defaultValue
+                            });
                         }
-                        switch (affinity) {
-                            case TypeAffinity.Int64:
-                                dbType = "INTEGER";
-                                Int64 testInt;
-                                if (defaultValue != null && !Int64.TryParse(defaultValue, out testInt))
-                                    throw new Exception(String.Format("The default value for column [{0}] ('{1}') cannot be converted to SQLite type {2}",
-                                        columnName, defaultValue, dbType));
-                                break;
-                            case TypeAffinity.Double:
-                                dbType = "REAL";
-                                double testDouble;
-                                if (defaultValue != null && !Double.TryParse(defaultValue, out testDouble))
-                                    throw new Exception(String.Format("The default value for column [{0}] ('{1}') cannot be converted to SQLite type {2}",
-                                        columnName, defaultValue, dbType));
-                                break;
-                            case TypeAffinity.Text:
-                                dbType = "TEXT";
-                                break;
-                            case TypeAffinity.DateTime:
-                                dbType = "DATETIME";
-                                DateTime testDate;
-                                if (defaultValue != null && !DateTime.TryParse(defaultValue, out testDate))
-                                    throw new Exception(String.Format("The default value for column [{0}] ('{1}') cannot be converted to SQLite type {2}",
-                                        columnName, defaultValue, dbType));
-                                break;
-                            default:
-                                throw new Exception(String.Format("The column named '{0}' cannot be unencrypted, because the data type '{1}' cannot be used for an unencrypted column.",
-                                    columnName, netType));
-                            //break;
-                        }
-
-                        columnIndex++;
-                        _tableColumns.Add(columnName, new TableColumn { 
-                            ColumnName = columnName,
-                            ColumnOrder = (columnIndex > 199) ? Convert.ToByte(199) : Convert.ToByte(columnIndex),
-                            PropertyName = prop.Name,
-                            NetType = netType,
-                            DbType = dbType,
-                            IsNotNull = prop.HasAttribute(typeof(NotNullAttribute)),
-                            DefaultValue = defaultValue
-                        });
                     }
                 }
             }

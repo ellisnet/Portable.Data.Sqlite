@@ -76,17 +76,19 @@ namespace SampleApp.Android {
             #region ADDED TO SAMPLE TO DEMONSTRATE Portable.Data.Sqlite
 
             string myTableName = "TestTable1";
-            string myEncryptedTableName;
+            string sql;
 
+            //Instantiate my "crypt engine"
             this.AppCryptEngine = this.AppCryptEngine ?? new FakeCryptEngine(this.AppPassword);
 
-            //Create a table, add a record, add a column, add encrypted data, read back data
+            #region Part 1 - ADO - Create a table, add a record, add a column, add encrypted data, read back data
+
             using (var dbConn = new SqliteAdoConnection(this.SqliteConnection, this.AppCryptEngine)) {
 
                 Console.WriteLine("PART 1 - Doing ADO stuff");
 
                 //Create the table if it doesn't exist
-                string sql = "CREATE TABLE IF NOT EXISTS " + myTableName + " (IdColumn INTEGER PRIMARY KEY AUTOINCREMENT, DateTimeColumn DATETIME, TextColumn TEXT);";
+                sql = "CREATE TABLE IF NOT EXISTS " + myTableName + " (IdColumn INTEGER PRIMARY KEY AUTOINCREMENT, DateTimeColumn DATETIME, TextColumn TEXT);";
                 using (var cmd = new SqliteCommand(sql, dbConn)) {
                     dbConn.SafeOpen();
                     cmd.ExecuteNonQuery();
@@ -118,8 +120,8 @@ namespace SampleApp.Android {
                 //  Hopefully a future version of SQLitePCL will make it easy to figure out if a column is defined as ENCRYPTED or TEXT
                 //  (right now, it identifies both as TEXT)
                 sql = "ALTER TABLE " + myTableName + " ADD COLUMN EncryptedColumn ENCRYPTED;";
-                //Note: This column shouldn't exist, since I just created the table above.  But if this application has been run multiple times, the column
-                //  may already exist in the table - so I need to check for it.
+                //Note: This column shouldn't exist until the above sql is run, since I just created the table above.  But if this application has been run multiple times, 
+                //  the column may already exist in the table - so I need to check for it.
                 bool columnAlreadyExists = false;
                 #region Check for column
                 using (var checkCmd = new SqliteCommand(dbConn)) {
@@ -186,87 +188,165 @@ namespace SampleApp.Android {
                         }
                     }
                 }
+            }
+
+            #endregion
+
+            #region Part 2 - EncryptedTable - Create an encrypted table to hold SampleDataItem objects, and read and write data
+
+            long numRecords;
+
+            using (var dbConn = new SqliteAdoConnection(this.SqliteConnection, this.AppCryptEngine)) {
 
                 Console.WriteLine(" ");
                 Console.WriteLine("PART 2 - Doing EncryptedTable stuff");
 
+                //Creating the encrypted table, adding some items/records
                 using (var encTable = new EncryptedTable<SampleDataItem>(this.AppCryptEngine, dbConn)) {
-                    myEncryptedTableName = encTable.TableName;
 
                     //Shouldn't need to call CheckDbTable manually, but I am going to check to see if there are
                     //  records in the table, so I need to make sure the table exists
                     //This will check the table and create the table and/or any missing columns if needed.
                     encTable.CheckDbTable();
 
-                    //Using ADO to see if there are already records in the table
-                    long numRecords;
-                    sql = "SELECT COUNT(*) FROM " + myEncryptedTableName + ";";
-                    using (var cmd = new SqliteCommand(sql, dbConn)) {
-                        dbConn.SafeOpen();
-                        numRecords = (long)cmd.ExecuteScalar();
+                    //Check to see how many records are in the table now
+                    numRecords = SampleDataItem.GetNumRecords(dbConn, encTable.TableName);
+                    Console.WriteLine("(1) There are currently " + numRecords.ToString() + " records in the table: " + encTable.TableName);
+
+                    foreach (var item in ExampleData.GetData().Where(i => i.LastName != "Johnson")) {
+                        encTable.AddItem(item);
                     }
-                    Console.WriteLine("There are currently " + numRecords.ToString() + " records in the table: " + myEncryptedTableName);
 
-                    #region Add some data
-                    encTable.AddItem(new SampleDataItem {
-                        FirstName = "Jim",
-                        LastName = "Kirk",
-                        Birthdate = new DateTime(2233, 3, 22),
-                        StateAbbreviation = "IA",
-                        ZipCode = "12345",
-                        MajorEvents = new List<Tuple<DateTime, string>> {
-                            new Tuple<DateTime, string>(new DateTime(2251, 4, 18), "Joined starfleet"),
-                            new Tuple<DateTime, string>(new DateTime(2255, 9, 26), "Kobayashi maru, 'nuff said"),
-                            new Tuple<DateTime, string>(new DateTime(2258, 5, 19), "Promoted to captain, U.S.S. Enterprise"),
-                            new Tuple<DateTime, string>(new DateTime(2270, 7, 22), "Promoted to Addmeerrall")
-                        }
-                    });
+                    Console.WriteLine("(2) There are currently {0} items to be written to the encrypted table: {1}",
+                        encTable.TempItems.Where(i => i.IsDirty).Count(), encTable.TableName);
 
-                    encTable.AddItem(new SampleDataItem {
-                        FirstName = "Joan",
-                        LastName = "Johnson",
-                        Birthdate = new DateTime(1964, 8, 22),
-                        ZipCode = "54321",
-                        MajorEvents = new List<Tuple<DateTime, string>> {
-                            new Tuple<DateTime, string>(new DateTime(1987, 9, 18), "Married Bob")
-                        }
-                    });
-
-                    encTable.AddItem(new SampleDataItem {
-                        FirstName = "Bob",
-                        LastName = "Johnson",
-                        Birthdate = new DateTime(1961, 5, 23),
-                        ZipCode = "54321",
-                        MajorEvents = new List<Tuple<DateTime, string>> {
-                            new Tuple<DateTime, string>(new DateTime(1987, 9, 18), "Married Joan")
-                        }
-                    });
-
-                    encTable.AddItem(new SampleDataItem {
-                        FirstName = "Ned",
-                        LastName = "Johnson",
-                        Birthdate = new DateTime(1992, 12, 18),
-                        ZipCode = "54321",
-                        MajorEvents = new List<Tuple<DateTime, string>> {
-                            new Tuple<DateTime, string>(new DateTime(2010, 9, 12), "Off to college")
-                        }
-                    });
-                    #endregion
-
-                    Console.WriteLine(String.Format("There are currently {0} items to be written to the encrypted table: {1}",
-                        encTable.TempItems.Where(i => i.IsDirty).Count(), myEncryptedTableName));
-
-                    //Note that at this moment, nothing new has been written to the table.  
-                    //  The table will be updated on encTable.Dispose (happens automatically at the end of this using() code 
-                    //  block, or we could force it now with encTable.WriteItemChanges()
+                    //Note that at this point in the code, nothing new has been written to the table yet.  
+                    //  The table will be updated on encTable.Dispose (in this case, that happens automatically at the end of this using() code 
+                    //  block) or we could force it now with encTable.WriteItemChanges()
 
                     //encTable.WriteItemChanges();
                 }
 
+                //Adding a couple more records...
+                using (var encTable = new EncryptedTable<SampleDataItem>(this.AppCryptEngine, dbConn)) {
 
+                    //Because encTable was disposed above, we should now see records in the table
+                    numRecords = SampleDataItem.GetNumRecords(dbConn, encTable.TableName);
+                    Console.WriteLine("(3) There are currently " + numRecords.ToString() + " records in the table: " + encTable.TableName);
+
+                    //Here is one way to add an item to the table - immediately
+                    //  (no need to type out 'immediateWriteToTable:' - but just wanted to show what the 'true' was for)
+                    encTable.AddItem(ExampleData.GetData().Where(i => i.FirstName == "Bob").Single(), immediateWriteToTable: true);
+
+                    //Another way to add items to the table - wait until WriteItemChanges() or WriteChangesAndFlush() or encTable.Dispose()
+                    //  is called
+                    encTable.AddItem(ExampleData.GetData().Where(i => i.FirstName == "Joan").Single(), immediateWriteToTable: false);
+                    encTable.AddItem(ExampleData.GetData().Where(i => i.FirstName == "Ned").Single());
+
+                    //Should only see one more record - Joan and Ned haven't been written yet
+                    numRecords = SampleDataItem.GetNumRecords(dbConn, encTable.TableName);
+                    Console.WriteLine("(4) There are currently " + numRecords.ToString() + " records in the table: " + encTable.TableName);
+
+                    //Let's see which items we have in memory right now
+                    foreach (var item in encTable.TempItems) {
+                        Console.WriteLine("In memory: ID#{0} {1} {2} - Status: {3}", item.Id, item.FirstName, item.LastName, item.SyncStatus);
+                    }
+
+                    //We can use WriteItemChanges() - writes any in-memory item changes to the table
+                    //encTable.WriteItemChanges();
+
+                    //OR WriteChangesAndFlush() writes any in-memory items to the table, and then drops any in-memory items and/or in-memory index of the table
+                    //Normally, only items that are out-of-sync with the table are written, forceWriteAll causes all items (whether they have changed or not)
+                    //  to be written
+                    encTable.WriteChangesAndFlush(forceWriteAll: true);
+
+                    //How many items in memory now?
+                    Console.WriteLine("After WriteChangesAndFlush() there are now {0} items in memory.", encTable.TempItems.Count());
+
+                    //How many records in the table?
+                    numRecords = SampleDataItem.GetNumRecords(dbConn, encTable.TableName);
+                    Console.WriteLine("After WriteChangesAndFlush() there are now {0} records in the table.", numRecords.ToString());
+                }
+
+                //Reading and searching for items/records
+                using (var encTable = new EncryptedTable<SampleDataItem>(this.AppCryptEngine, dbConn)) {
+
+                    //Doing a GetItems() with an empty TableSearch (like the line below) will get all items
+                    List<SampleDataItem> allItems = encTable.GetItems(new TableSearch());
+
+                    foreach (var item in allItems) {
+                        Console.WriteLine("In table: ID#{0} {1} {2}", item.Id, item.FirstName, item.LastName);
+                    }
+
+                    //Let's just get one item - exceptionOnMissingItem: true will throw an exception if the item wasn't found
+                    // in the table; with exceptionOnMissingItem: false, we will just get a null
+                    SampleDataItem singleItem = encTable.GetItem(allItems.First().Id, exceptionOnMissingItem: true);
+                    Console.WriteLine("Found via ID: ID#{0} {1} {2}", singleItem.Id, singleItem.FirstName, singleItem.LastName);
+
+                    //Because we did a full table GetItems() above, we should have a nice, searchable index of all of the 
+                    // items in the table.  But let's check it and re-build if necessary
+                    encTable.CheckFullTableIndex(rebuildIfExpired: true);
+
+                    //Otherwise, we could just force a rebuild of the searchable index
+                    //  encTable.BuildFullTableIndex();
+
+                    //So, the easy way to find matching items, based on the full table index is to pass in a TableSearch
+                    List<SampleDataItem> matchingItems = encTable.GetItems(new TableSearch {
+                        SearchType = TableSearchType.And,  //Items must match all search criteria
+                        MatchItems = {
+                            new TableSearchItem("LastName", "Johnson", SearchItemMatchType.IsEqualTo),
+                            new TableSearchItem("FirstName", "Ned", SearchItemMatchType.DoesNotContain)
+                        }
+                    });
+                    foreach (var item in matchingItems) {
+                        Console.WriteLine("Found via search: ID#{0} {1} {2}", item.Id, item.FirstName, item.LastName);
+                    }
+
+                    //Let's see what is in this "full table index" anyway
+                    foreach (var item in encTable.FullTableIndex.Index) {
+                        Console.WriteLine("Indexed item ID: " + item.Key.ToString());
+                        foreach (var value in item.Value) {
+                            Console.WriteLine("  - Searchable value: {0} = {1}", value.Key ?? "", value.Value ?? "");
+                        }
+                    }
+
+                    //Let's remove/delete a record from the table (with immediate removal)
+                    Console.WriteLine("Deleting record: ID#{0} {1} {2}", singleItem.Id, singleItem.FirstName, singleItem.LastName);
+                    encTable.RemoveItem(singleItem.Id, immediateWriteToTable: true);
+
+                    //Let's see what is actually in the table
+                    Console.WriteLine("Records in the table " + encTable.TableName + " - ");
+                    sql = "select * from " + encTable.TableName;
+                    using (var cmd = new SqliteCommand(sql, dbConn)) {
+                        using (SqliteDataReader reader = cmd.ExecuteReader()) {
+                            while (reader.Read()) {
+                                var record = new StringBuilder();
+                                foreach (Portable.Data.Sqlite.TableColumn column in encTable.TableColumns.Values.OrderBy(tc => tc.ColumnOrder)) {
+                                    if (column.ColumnName == "Id") { record.Append(column.ColumnName + ": " + reader[column.ColumnName].ToString()); }
+                                    else {
+                                        record.Append(" - " + column.ColumnName + ": " + (reader[column.ColumnName].ToString() ?? ""));
+                                    }
+                                }
+                                Console.WriteLine(record.ToString());
+                            }
+                        }
+                    }
+                }
 
             }
+
+            #endregion
+
             Console.WriteLine("Done.");
+
+            //Pop up a message saying we are done
+            var dialog = new AlertDialog.Builder(this);
+            dialog.SetMessage("If you can see this message, then the sample Portable.Data.Sqlite code ran correctly. " +
+                "Take a look at the code in the 'MainActivity.cs' file, and compare it to what you are seeing in the IDE Output window. " +
+                "And have a nice day...");
+            dialog.SetCancelable(false); 
+            dialog.SetPositiveButton("OK", delegate { });
+            dialog.Create().Show();
 
             #endregion
 
