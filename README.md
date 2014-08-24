@@ -177,15 +177,20 @@ using (IObjectCryptEngine myCryptEngine = new MyCryptEngine("my encryption passw
 }
 ```
 Here is what the above code does:
+
 We identified a new SQLite database [file] called *mydatabase.sqlite* in the folder specified in *pathToDatabaseFolder*.  The recommended folder varies based on the platform (Windows Store, iOS, Android, etc.)  I will probably add a list of the recommended folder paths for each platform here; but at the moment, I haven't verified those.  You can look at the examples in the Samples folder to see which folders they are using.
+
 Next we created an instance of *MyCryptEngine* which is our implementation of *IObjectCryptEngine* as described above, with our secret password.
+
 Next we created an instance of *SqliteAdoConnection* based on a *SQLitePCL.SQLiteConnection* to our database [file]; and we passed in our crypt engine. Creating the new *SQLitePCL.SQLiteConnection*, with the path to our file, created our database file if it didn't already exist.
+
 The *sql = "CREATE TABLE IF NOT EXISTS..."* line is our SQL statement to create our new table.  Using the *SqliteCommand.ExecuteNonQuery()* line, we can send pretty much any SQLite-legal SQL statements to our database.  Note that SQLite SQL is not the same as the T-SQL that you use with Microsoft's SQL products.  For example - as you will see below - instead of *SELECT TOP 1 * FROM myTableName* (T-SQL), we will use *SELECT * FROM myTableName LIMIT 1* (SQLite SQL).  Lots of information about SQLite's flavor of SQL is available [here](http://www.sqlite.org/lang.html)
+
 Finally, we create a *SqliteCommand* with our SQL statement and connection, open the database connection and execute it.
 
 ```c#
         //Add/insert a record
-        sql = "INSERT INTO [myTableName](FirstWord, SecondWord) " +
+        sql = "INSERT INTO [myTableName] (FirstWord, SecondWord) " +
             "VALUES (@firstword, @secondword);";
         int newRowId;
         using (var myCommand = new SqliteCommand(sql, myConnection)) 
@@ -206,8 +211,10 @@ Finally, we create a *SqliteCommand* with our SQL statement and connection, open
             {
                 while (myReader.Read()) 
                 {
-                    Console.WriteLine("{0} {1}!", myReader["FirstWord"].ToString() ?? "",
-                        myReader["SecondWord"].ToString() ?? ""); // Output: Hello SQLite!
+                    int rowId = myReader.GetInt32("Id");
+                    string firstWord = myReader["FirstWord"].ToString() ?? "";
+                    string lastWord = myReader.GetString("SecondWord") ?? "";
+                    Console.WriteLine("{0} {1}!",  firstWord, lastWord); // Output: Hello SQLite!
                 }
             }
         }
@@ -218,17 +225,101 @@ Finally, we create a *SqliteCommand* with our SQL statement and connection, open
         {
             myConnection.SafeOpen();
             int highestRowId = Convert.ToInt32(myCommand.ExecuteScalar());
-            Console.Write("The highest [Id] column value so far is: {0}", highestRowId);
+            Console.WriteLine("The highest [Id] column value so far is: {0}", highestRowId);
         }
 ```
 Here is what the above code does:
+
 First we INSERTed a row into our table with the values ('*Hello*', '*SQLite*').  We used *SQLiteCommand.ExecuteReturnRowId()* so we would get back the RowId (i.e. the value of our INTEGER PRIMARY KEY [Id] column). Note that SQLite mostly deals in the long/Int64 datatype for Integer values, so that is what *SQLiteCommand.ExecuteReturnRowId()* returned, and we cast it as an int/Int32.
-Next we SELECTed the row using *SqliteCommand.ExecuteReader()* to create a *SqliteDataReader*, and then *SqliteDataReader.Read()* to iterate through the rows of our recordset.  If more than row had been returned, the *while (myReader.Read()) {}* loop would repeat for each row - i.e. *SqliteDataReader.Read()* returns false when there are no more rows.
+
+Next we SELECTed the row using *SqliteCommand.ExecuteReader()* to create a *SqliteDataReader*, and then *SqliteDataReader.Read()* to iterate through the rows of our recordset.  If more than row had been returned, the *while (myReader.Read()) {}* loop would repeat for each row - i.e. *SqliteDataReader.Read()* returns false when there are no more rows. Notice that when doing *SqliteDataReader.Read()*, there a few different ways to get a particular column value.  You can use *SqliteDataReader[columnName]* or *SqliteDataReader[columnIndex]*, which return *System.Object*; or you can use *SqliteDataReader.GetXXX(columnName)* or *SqliteDataReader.GetXXX(columnIndex)* to get a value of a particular type (e.g. *SqliteDataReader.GetInt32()* or *SqliteDataReader.GetString()* as shown above).
+
 Finally, we used *SqliteCommand.ExecuteScalar()* to get a single value. It returns the value of the first column of the first returned row. But *SqliteCommand.ExecuteScalar()* just returns a *System.Object*; it doesn't know what datatype it is returning, so we had to convert that into an Integer.
 
 Believe it or not, you can do almost everything you could want in your SQLite database with just the above code - and some knowledge of the [SQLite flavor of SQL](http://www.sqlite.org/lang.html).
 
-Step 2) Working with an encrypted column - in progress...
+Step 2) Working with an encrypted column.
+
+```c#
+        //Adding the encrypted column
+        sql = "ALTER TABLE [myTableName] ADD COLUMN EncryptedColumn ENCRYPTED;";
+        myConnection.SafeOpen();
+        (new SqliteCommand(sql, myConnection)).ExecuteNonQuery();
+
+        //Adding some encrypted values
+        string valueToEncrypt1 = "This string will be encrypted in the database.";
+        Tuple<int, string, string> valueToEncrypt2  = 
+            Tuple.Create(1, "This object will also", "be encrypted.");
+        long encryptedRowId1, encryptedRowId2;
+        sql = "INSERT INTO [myTableName] (EncryptedColumn) VALUES (@encrypted);";
+        //add value #1
+        using (var myCommand = new SqliteCommand(sql, myConnection)) 
+        {
+            myCommand.AddEncryptedParameter(new SqliteParameter("@encrypted", valueToEncrypt1));
+            myConnection.SafeOpen();
+            encryptedRowId1 = myCommand.ExecuteReturnRowId();
+        }
+        //add value #2
+        using (var myCommand = new SqliteCommand(sql, myConnection)) 
+        {
+            myCommand.AddEncryptedParameter(new SqliteParameter("@encrypted", valueToEncrypt2));
+            myConnection.SafeOpen();
+            encryptedRowId2 = myCommand.ExecuteReturnRowId();
+        }
+
+        //Check the encrypted values
+        sql = "SELECT [EncryptedColumn] FROM [myTableName] WHERE [Id] = @rowid;";
+        //get value #1
+        using (var myCommand = new SqliteCommand(sql, myConnection)) 
+        {
+            myCommand.Parameters.Add(new SqliteParameter("@rowid", value: encryptedRowId1));
+            myConnection.SafeOpen();
+            using (SqliteDataReader myReader = myCommand.ExecuteReader()) 
+            {
+                while (myReader.Read()) 
+                {
+                    string encryptedValue = myReader.GetString("EncryptedColumn");
+                    string decryptedValue = myReader.GetDecrypted<string>("EncryptedColumn");
+                    Console.WriteLine("The encrypted value is: " + encryptedValue);
+                        //Output: The encrypted value is: (random characters)
+                    Console.WriteLine("The decrypted value is: " + decryptedValue);
+                        //Output: The decrypted value is: This string will be encrypted in the database.
+                }
+            }
+        }
+        //get value #1
+        using (var myCommand = new SqliteCommand(sql, myConnection)) 
+        {
+            myCommand.Parameters.Add(new SqliteParameter("@rowid", value: encryptedRowId2));
+            myConnection.SafeOpen();
+            using (SqliteDataReader myReader = myCommand.ExecuteReader()) 
+            {
+                while (myReader.Read()) 
+                {
+                    string encryptedValue = myReader.GetString("EncryptedColumn");
+                    Tuple<int, string, string> decryptedValue =
+                        myReader.GetDecrypted<Tuple<int, string, string>>("EncryptedColumn");
+                    Console.WriteLine("The encrypted value is: " + encryptedValue);
+                        //Output: The encrypted value is: (random characters)
+                    Console.WriteLine("The decrypted value is: {0} - {1} {2}", 
+                        decryptedValue.Item1, decryptedValue.Item2, decryptedValue.Item3);
+                        //Output: The decrypted value is: 1 - This object will also be encrypted.
+                }
+            }
+        }
+```
+Here is what the above code does:
+
+First we added an *EncryptedColumn* column to our table.  We set the datatype for the column to be *ENCRYPTED*, but that is just for show.  It really is *TEXT* - there is no such thing in SQLite as a column of datatype *ENCRYPTED*.  However, I like to do that, in case I look at the table column list - it helps me to know which columns are encrypted.  Note that if this SQL statement was executed again, we would get an exception because the column has already been added to the table, and we can't add it again.  There is a *CREATE TABLE IF NOT EXISTS* but not an *ADD COLUMN IF NOT EXISTS*, but we could have added this column in our original table definition and avoided this problem.  The code in the sample applications get around this problem by performing a *PRAGMA* command to get a list of columns, and then determine if the column existed or not.
+
+We added our values-to-be-encrypted using *SqliteParameter* almost as normal, but the parameter values were added with *SqliteCommand.AddEncryptedParameter(new SqliteParameter(columnName, valueToEncrypt))* - that is the only thing special we had to do.
+
+Then, we got our decrypted value back, by using a *SqliteDataReader* just as before; but we used *SqliteDataReader.GetDecrypted&lt;T&gt;(columnName)*.  Note that this will cause an exception if the value in the table column is NULL, though there is an optional boolean *suppressExceptions* parameter to prevent that.  You can also use *SqliteDataReader.TryDecrypt&lt;T&gt;()* method that will just return a false if the decryption couldn't happen (e.g. if the column value was NULL).
+
+Important Final Notes for ADO:
+
+  1. We were able to store an object (a Tuple, in the above example) - not just a string or integer value - in an encrypted column, because SQLite doesn't really care what we put in there.  It will all be text, as far as SQLite is concerned. We could basically put just about any type of CLR object in an encrypted column... which is pretty powerful.
+  2. However searching for matching records based on values in an encrypted column becomes difficult, because you would have to search on an exact encrypted string; or decrypt all of the values in your table to see which records had a matching value.  That is the reason for Part 2: EncryptedTable&lt;T&gt; - so keep reading...
 
 Examples Part 2: Using EncryptedTable&lt;T&gt;
 ----------------------------------------
