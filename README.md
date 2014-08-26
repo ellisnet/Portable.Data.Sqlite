@@ -16,6 +16,8 @@ This is a portable cross-platform ADO provider for SQLite databases, featuring t
 
 The developer of this library welcomes all feedback, suggestions, issue/bug reports, and pull requests. Please log questions and issues in the Portable.Data.Sqlite GitHub *Issues* section - available [here](https://github.com/ellisnet/Portable.Data.Sqlite/issues)
 
+The latest released version of this library is available via NuGet. From within Visual Studio and Xamarin Studio, search for **Portable.Data.Sqlite**
+
 Important Notes About Encryption
 --------------------------------
   1. For various reasons, this library **does not include an encryption algorithm**.  All operating systems listed above have built-in AES encryption that can be used with this library (as one example of an encryption algorithm that works well).  It is up to you to specify the algorithm to use by implementing the *IObjectCryptEngine* interface.  This allows you to choose exactly how your data will be encrypted.  Taking a well understood encryption algorithm and implementing your own *encryption engine* should not be too difficult; see detailed information below.
