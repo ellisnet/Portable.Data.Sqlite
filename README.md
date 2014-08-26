@@ -18,7 +18,7 @@ The developer of this library welcomes all feedback, suggestions, issue/bug repo
 
 Important Notes About Encryption
 --------------------------------
-  1. For various reasons, this library **does not include an encryption algorithm**.  All operating systems listed above have built-in AES encryption that can be used with this library (as an example of one type of encryption algorithm that works well).  It is up to you to specify the algorithm to use by implementing the *IObjectCryptEngine* interface.  This allows you to choose exactly how your data will be encrypted.  Taking a well understood encryption algorithm and implementing your own *encryption engine* should not be too difficult; see detailed information below.
+  1. For various reasons, this library **does not include an encryption algorithm**.  All operating systems listed above have built-in AES encryption that can be used with this library (as one example of an encryption algorithm that works well).  It is up to you to specify the algorithm to use by implementing the *IObjectCryptEngine* interface.  This allows you to choose exactly how your data will be encrypted.  Taking a well understood encryption algorithm and implementing your own *encryption engine* should not be too difficult; see detailed information below.
   2. This library **does not implement full database encryption** - for that, please investigate SQLCipher - available [here](http://sqlcipher.net/)  
 It is up to you - the developer who is using this library - to decide which data in the database to encrypt; and which data not to.  You can encrypt any column in any table, and you can encrypt an entire table (i.e. all of the records in a table).
 
@@ -26,10 +26,10 @@ Table of Contents
 -----------------
 Since I am adding quite a lot of information to this readme file, here is an outline of the sections below - to make finding what you are looking for easier:
 
-  1. Setting up SQLitePCL and implementing *IObjectCryptEngine* - the only potentially difficult parts of using the library.  May as well cover those up front...
-  2. Explanation of sample projects in the Samples folder.
-  3. Example code showing use of the library, Part 1: Doing ADO stuff - Creating SQLite-based DbConnections, using SQLite versions of DbCommand and DbDataReader.  Also included: sample code for encrypting a single column in a SQLite table.
-  4. Example code showing use of the library, Part 2: Using EncryptedTable&lt;T&gt; - How to create an object in your code that will have a table where all of the record data is encrypted, how to read and write values, and how to perform searches of the data without the need to decrypt every object in the table.
+  1. [Setting up SQLitePCL and implementing *IObjectCryptEngine*](https://github.com/ellisnet/Portable.Data.Sqlite#dealing-with-the-potentially-difficult-parts-up-front) - the only potentially difficult parts of using the library.  May as well cover those up front...
+  2. [Explanation of sample projects in the Samples folder](https://github.com/ellisnet/Portable.Data.Sqlite#explanation-of-sample-projects)
+  3. Example code showing use of the library, [Part 1: Doing ADO stuff](https://github.com/ellisnet/Portable.Data.Sqlite#examples-part-1-doing-ado-stuff) - Creating SQLite-based DbConnections, using SQLite versions of DbCommand and DbDataReader.  Also included: sample code for encrypting a single column in a SQLite table.
+  4. Example code showing use of the library, [Part 2: Using EncryptedTable&lt;T&gt;](https://github.com/ellisnet/Portable.Data.Sqlite#examples-part-2-using-encryptedtablet) - How to create an object in your code that will have a table where all of the record data is encrypted, how to read and write values, and how to perform searches of the data without the need to decrypt every object in the table.
   5. Information about storing your SQLite database password securely on the various platforms
   6. How to use this library asynchronously, using *async/await*
   7. How to use this library with Xamarin.Forms
