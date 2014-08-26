@@ -337,12 +337,12 @@ public class ProtectedData : EncryptedTableItem {
 
     public string LastName {
         get { return _lastName; }
-        set { _lastName = value; }
+        set { _lastName = SetChanged(value); }
     }
 
     public string FirstName {
         get { return _firstName; }
-        set { _firstName = value; }
+        set { _firstName = SetChanged(value); }
     }
 
     //Note that the other properties we will add in Step 1 will go here
@@ -350,7 +350,7 @@ public class ProtectedData : EncryptedTableItem {
 }
 ```
 
-The class shown above is a "plain old CLR object", or POCO, with just two properties for first and last name. It is as unremarkable as a C# class gets.  But it has one critical edition - it inherits from *EncryptedTableItem*.  That is the important thing, and allows us to create a Encrypted Table based on this object.  However, if we leave it as is, we will have a problem with searching the table.  Because the first and last names will be encrypted, and we won't be able to do something like: *SELECT FirstName FROM [ProtectedData] WHERE LastName = 'Johnson';* - our code would have to get the entire table contents, decrypt each record and then find the matching records.  But we don't want to lose our encryption of the first and last name; so, we will just make one tweak:
+The class shown above is almost a "plain old CLR object", or POCO, with just two properties for first and last name. It is pretty unremarkable as C# classes go.  But it has a couple of critical additions - it inherits from *EncryptedTableItem*, and the property setters are using *SetChanged()*.  Inheriting from *EncryptedTableItem* is the most important thing, and allows us to create a Encrypted Table based on this object.  However, if we leave it as is, we will have a problem with searching the table.  Because the first and last names will be encrypted, and we won't be able to do something like: *SELECT FirstName FROM [ProtectedData] WHERE LastName = 'Johnson';* - our code would have to get the entire table contents, decrypt each record and then find the matching records.  But we don't want to lose our encryption of the first and last name; so, we will just make one tweak:
 
 ```c#
     private string _lastName;
@@ -359,17 +359,19 @@ The class shown above is a "plain old CLR object", or POCO, with just two proper
     [Searchable]
     public string LastName {
         get { return _lastName; }
-        set { _lastName = value; }
+        set { _lastName = SetChanged(value); }
     }
 
     [Searchable]
     public string FirstName {
         get { return _firstName; }
-        set { _firstName = value; }
+        set { _firstName = SetChanged(value); }
     }
 ```
 
 By adding the *[Searchable]* attribute on our FirstName and LastName properties, we made them searchable without the need to decrypt the entire table.  When these records are saved to the database, an encrypted "index" will also be saved, with just the values of the *[Searchable]* properties.  Note that we could add very complex properties to our object-to-be-stored-in-an-encrypted-table - like a *List&lt;OtherObject&gt;* - and these will be stored correctly with encryption in the database, but these cannot be made searchable.  Only simple properties like string, integer, etc. can be set as *[Searchable]*.
+
+The *SetChanged&lt;T&gt;()* method used above makes sure that if one of the properties is changed, the object will be marked as 'Modified' - with respect to the database record.  Then when *WriteItemChanges()* (see below) is called, the records for these items will be updated in the database.  The *CheckChange&lt;T&gt;* method below is slightly different than *SetChanged&lt;T&gt;()* - *SetChanged&lt;T&gt;()* will always set the object to a status of 'Modified' when the setter for the property is called.  With *CheckChange&lt;T&gt;*, the object will only be marked as 'Modified' if the incoming value is different than the current value.
 
 ```c#
     string _stateAbbreviation;
@@ -378,13 +380,13 @@ By adding the *[Searchable]* attribute on our FirstName and LastName properties,
     [NotEncrypted, ColumnName("State"), NotNull, ColumnDefaultValue("MN")]
     public string StateAbbreviation {
         get { return _stateAbbreviation; }
-        set { _stateAbbreviation = value; }
+        set { _stateAbbreviation = CheckChange( _stateAbbreviation, value); }
     }
 
     [NotEncrypted]
     public string ZipCode {
         get { return _zipCode; }
-        set { _zipCode = value; }
+        set { _zipCode = CheckChange( _zipCode, value); }
     }
 ```
 
@@ -394,7 +396,7 @@ Next, we have added a couple of extra properties to our *ProtectedData* class - 
     private List<Address> _knownStreetAddresses;
     public List<Address> KnownStreetAddresses {
         get { return _knownStreetAddresses; }
-        set { _knownStreetAddresses = value; }
+        set { _knownStreetAddresses = SetChanged(value); }
     }
 ```  
 

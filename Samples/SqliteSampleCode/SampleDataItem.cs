@@ -26,22 +26,32 @@ namespace SampleApp.Shared.SqliteSampleCode {
         //  - the data WILL BE encrypted, but you will be able to search these columns without
         //  retrieving, decrypting and instantiating the entire record/object.
 
+        //Using SetChanged<T>() when setting property values allows the object to track
+        //  whether it has changed or not, with respect to the database.
+        //  When changes are written to the database, the object will have tracked whether
+        //  it has been updated or not.
+
+        //In examples below, we are using CheckChange<T>() when setting property values.
+        //  The difference between SetChanged and CheckChange is that using SetChanged will
+        //  always set the object to a status of 'Modified', while CheckChange will only do \
+        //  this if the new value is different than the old value.
+
         [Searchable]
         public string FirstName {
             get { return _firstName; }
-            set { _firstName = value; }
+            set { _firstName = SetChanged(value); }
         }
 
         [Searchable]
         public string LastName {
             get { return _lastName; }
-            set { _lastName = value; }
+            set { _lastName = SetChanged(value); }
         }
 
         [Searchable]
         public DateTime Birthdate {
             get { return _birthdate; }
-            set { _birthdate = value; }
+            set { _birthdate = SetChanged(value); }
         }
 
         //The following property/column demonstrates all of the possible attributes
@@ -56,7 +66,7 @@ namespace SampleApp.Shared.SqliteSampleCode {
         [NotEncrypted, ColumnName("State"), NotNull, ColumnDefaultValue("MN")]
         public string StateAbbreviation {
             get { return _stateAbbreviation; }
-            set { _stateAbbreviation = value; }
+            set { _stateAbbreviation = CheckChange(_stateAbbreviation, value); }
         }
 
         // A non-encrypted column will be created for the following property in the database, for easy querying
@@ -64,7 +74,7 @@ namespace SampleApp.Shared.SqliteSampleCode {
         [NotEncrypted]
         public string ZipCode {
             get { return _zipCode; }
-            set { _zipCode = value; }
+            set { _zipCode = CheckChange(_zipCode, value); }
         }
 
         //The following property will be encrypted and will not be able to be searched without 
@@ -72,7 +82,7 @@ namespace SampleApp.Shared.SqliteSampleCode {
 
         public List<Tuple<DateTime, string>> MajorEvents {
             get { return _majorEvents; }
-            set { _majorEvents = value ?? new List<Tuple<DateTime, string>>(); }
+            set { _majorEvents = CheckChange(_majorEvents, value ?? new List<Tuple<DateTime, string>>()); }
         }
 
         //A little static method to check and see how many records are in the encrypted table,
