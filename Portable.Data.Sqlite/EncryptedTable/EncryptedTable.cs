@@ -677,8 +677,8 @@ namespace Portable.Data.Sqlite {
                 result += " WHERE";
                 foreach (TableSearchItem searchItem in search.MatchItems.Where(m => m.PropertyType == SearchItemPropertyType.NotEncrypted)) {
                     result += andOr;
-                    if (andOr == "" && search.SearchType == TableSearchType.And) andOr = " AND";
-                    if (andOr == "" && search.SearchType == TableSearchType.Or) andOr = " OR";
+                    if (andOr == "" && search.SearchType == TableSearchType.MatchAll) andOr = " AND";
+                    if (andOr == "" && search.SearchType == TableSearchType.MatchAny) andOr = " OR";
 
                     switch (searchItem.MatchType) {
                         case SearchItemMatchType.IsEqualTo:
@@ -754,10 +754,10 @@ namespace Portable.Data.Sqlite {
                 string TLmatchValue;
 
                 switch (search.SearchType) {
-                    case TableSearchType.And:
+                    case TableSearchType.MatchAll:
                         itemMatch = true;
                         break;
-                    case TableSearchType.Or:
+                    case TableSearchType.MatchAny:
                         itemMatch = false;
                         break;
                     default:
@@ -882,7 +882,7 @@ namespace Portable.Data.Sqlite {
                         //break;
                     }
 
-                    if (search.SearchType == TableSearchType.And) {
+                    if (search.SearchType == TableSearchType.MatchAll) {
                         itemMatch &= foundMatch;
                         if (!itemMatch) break;
                     }
@@ -1089,7 +1089,7 @@ namespace Portable.Data.Sqlite {
                     _writeNewItem(item, rebuildFullIndex);
                 }
 
-                foreach (T item in _tempItems.Where(i => i.SyncStatus == TableItemStatus.DeletedFromDb)) {
+                foreach (T item in _tempItems.Where(i => i.SyncStatus == TableItemStatus.DeletedFromDb).ToList()) {
                     _tempItems.Remove(item);
                 }
 

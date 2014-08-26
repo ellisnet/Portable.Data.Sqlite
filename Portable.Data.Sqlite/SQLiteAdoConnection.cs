@@ -1194,4 +1194,18 @@ namespace Portable.Data.Sqlite {
         /// </summary>
         public bool AbortTransaction;
     }
+
+    /// <summary>
+    /// Specifies what should happen if an unexpected NULL value is encountered in a SQLite table field
+    /// </summary>
+    public enum DbNullHandling {
+        /// <summary>
+        /// An exception will be thrown, indicating that the specified field was null
+        /// </summary>
+        ThrowDbNullException = 0,
+        /// <summary>
+        /// The default value of the specified Type (not column default value) will be returned, i.e. 'null' for reference types
+        /// </summary>
+        ReturnTypeDefaultValue
+    }
 }

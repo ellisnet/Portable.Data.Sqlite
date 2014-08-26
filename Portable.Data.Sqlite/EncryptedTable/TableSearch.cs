@@ -27,13 +27,13 @@ namespace Portable.Data.Sqlite {
     /// </summary>
     public enum TableSearchType {
         /// <summary>
-        /// All property values of the specified object must match the search criteria
+        /// All property values of the specified object must match the search criteria - equivalent to AND in SQL
         /// </summary>
-        And = 0,
+        MatchAll = 0,
         /// <summary>
-        /// One or more property values of the specified object must match the search criteria
+        /// One or more property values of the specified object must match the search criteria - equivalent to OR in SQL
         /// </summary>
-        Or
+        MatchAny
     }
 
     /// <summary>
@@ -42,7 +42,7 @@ namespace Portable.Data.Sqlite {
     public class TableSearch {
 
         List<TableSearchItem> _matchItems = new List<TableSearchItem>();
-        TableSearchType _searchType = TableSearchType.And;
+        TableSearchType _searchType = TableSearchType.MatchAll;
 
         /// <summary>
         /// List of properties and values to be used in identifying matching objects - IMPORTANT: If this list contains no members, all compared objects will match

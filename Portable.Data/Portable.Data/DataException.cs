@@ -28,7 +28,7 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
-#if !WINDOWS_PHONE
+//#if !WINDOWS_PHONE
 
 using System;
 
@@ -53,8 +53,8 @@ namespace Portable.Data
     }
 }
 
-#else
+//#else
 
-[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Data.DataException))]
+//[assembly: System.Runtime.CompilerServices.TypeForwardedTo(typeof(System.Data.DataException))]
 
-#endif
+//#endif

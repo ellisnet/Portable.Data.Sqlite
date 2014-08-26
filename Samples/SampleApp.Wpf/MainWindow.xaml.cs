@@ -135,9 +135,9 @@ namespace SampleApp.Wpf {
                                 var sb = new StringBuilder();
                                 sb.Append("ID: " + dr.GetInt32("IdColumn").ToString());
                                 sb.Append(" - Timestamp: " + dr.GetDateTime("DateTimeColumn").ToString());
-                                //IMPORTANT: GetDecrypted<T> will throw an exception on a NULL column value, unless suppressExceptions is set to True
-                                //  as in the line below.  You may want to use TryDecrypt<T> instead.
-                                var decryptedValue = dr.GetDecrypted<Tuple<string, string, string>>("EncryptedColumn", true);
+                                //IMPORTANT: By default, GetDecrypted<T> will throw an exception on a NULL column value.  You can specify DbNullHandling.ReturnTypeDefaultValue
+                                // to return the default value of the specified type - as in default(T) - when a NULL column value is encountered, if you choose.
+                                var decryptedValue = dr.GetDecrypted<Tuple<string, string, string>>("EncryptedColumn", DbNullHandling.ReturnTypeDefaultValue);
                                 sb.Append(" - Value: " + ((decryptedValue == null) ? "NULL" :
                                     decryptedValue.Item1 + " " + decryptedValue.Item2 + " " + decryptedValue.Item3));
                                 Console.WriteLine(sb.ToString());
@@ -248,7 +248,7 @@ namespace SampleApp.Wpf {
 
                         //So, the easy way to find matching items, based on the full table index is to pass in a TableSearch
                         List<SampleDataItem> matchingItems = encTable.GetItems(new TableSearch {
-                            SearchType = TableSearchType.And,  //Items must match all search criteria
+                            SearchType = TableSearchType.MatchAll,  //Items must match all search criteria
                             MatchItems = {
                             new TableSearchItem("LastName", "Johnson", SearchItemMatchType.IsEqualTo),
                             new TableSearchItem("FirstName", "Ned", SearchItemMatchType.DoesNotContain)

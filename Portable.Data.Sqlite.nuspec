@@ -2,14 +2,16 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
     <metadata>
         <id>Portable.Data.Sqlite</id>
-        <version>0.9.2</version>
+        <version>1.0.0</version>
         <title>Portable ADO-style SQLite with Encryption</title>
-        <authors>Jeremy Ellis</authors>
+        <authors>Jeremy Ellis,Matthew Leibowitz</authors>
         <owners>Ellisnet</owners>
         <projectUrl>https://github.com/ellisnet/Portable.Data.Sqlite</projectUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <description>Portable cross-platform ADO-style SQLite library enabling table-record-level and table-column-level encryption.  Please see the project site for details about what this library does, and how to use it.</description>
-        <releaseNotes>v0.9.2 - Fixed a couple of issues related to the TableColumns property of the EncryptedTable class.  The property is now instance-level vs. static.  Also added information to the readme file.
+        <releaseNotes>v1.0.0 - First official version, with several tweaks and bug-fixes.  New Execute methods added to SqliteCommand. Breaking changes from v0.9.2: (a) TableSearchType enum members renamed from And/Or to MatchAll/MatchAny. (b) suppressExceptions parameter removed from SqliteDataReader.GetDecrypted methods in favor of DbNullHandling enum, for greater flexibility.
+
+v0.9.2 - Fixed a couple of issues related to the TableColumns property of the EncryptedTable class.  The property is now instance-level vs. static.  Also added information to the readme file.
 
 v0.9.1 - Updated SQLitePCL dependency information in NuGet package (no code changes from 0.9.0).</releaseNotes>
         <copyright>Copyright 2014 Ellisnet</copyright>

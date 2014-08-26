@@ -68,7 +68,7 @@ namespace Portable.Data.Sqlite {
 
         internal IObjectCryptEngine _cryptEngine = null;
         private static readonly string NO_CRYPT_ENGINE = "Cryptography has not been enabled on this SQLite command.";
-        private readonly Object encryptLock = new Object();
+        //private readonly Object encryptLock = new Object();
 
         ///<overloads>
         /// Constructs a new SqliteCommand
@@ -526,13 +526,53 @@ namespace Portable.Data.Sqlite {
         /// <returns>The first column of the first row of the first resultset from the query</returns>
         public override object ExecuteScalar() {
             using (SqliteDataReader reader = ExecuteReader(CommandBehavior.SingleRow | CommandBehavior.SingleResult)) {
-                //var test = reader.Read();
-                //if (test)
-                //    return reader[0];
                 if (reader.Read())
                     return reader[0];
             }
             return null;
+        }
+
+        /// <summary>
+        /// A variation of DbCommand.ExecuteScalar() that allows you to specify the Type of the returned value
+        /// </summary>
+        /// <typeparam name="T">The type of value to return</typeparam>
+        /// <param name="dbNullHandling">Determines how table column values of NULL are handled</param>
+        /// <returns>A value of the specified type</returns>
+        public T ExecuteScalar<T>(DbNullHandling dbNullHandling = DbNullHandling.ThrowDbNullException) {
+            T result = default(T);
+            using (SqliteDataReader reader = ExecuteReader(CommandBehavior.SingleRow | CommandBehavior.SingleResult)) {
+                if (reader.Read()) {
+                    if (reader.IsDBNull(0)) {
+                        if (dbNullHandling == DbNullHandling.ThrowDbNullException) throw new DbNullException();
+                    }
+                    else {
+                        result = (T)Convert.ChangeType(reader[0], typeof(T));
+                    }
+                }
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// A variation of DbCommand.ExecuteScalar() that allows you to specify that a decrypted value of the specified type will be returned
+        /// </summary>
+        /// <typeparam name="T">The type of value to return after decryption</typeparam>
+        /// <param name="dbNullHandling">Determines how table column values of NULL are handled</param>
+        /// <returns>A decrypted value of the specified type</returns>
+        public T ExecuteDecrypt<T>(DbNullHandling dbNullHandling = DbNullHandling.ThrowDbNullException) {
+            T result = default(T);
+            if (_cryptEngine == null) throw new Exception(NO_CRYPT_ENGINE);
+            using (SqliteDataReader reader = ExecuteReader(CommandBehavior.SingleRow | CommandBehavior.SingleResult)) {
+                if (reader.Read()) {
+                    if (reader.IsDBNull(0)) {
+                        if (dbNullHandling == DbNullHandling.ThrowDbNullException) throw new DbNullException();
+                    }
+                    else {
+                        result = _cryptEngine.DecryptObject<T>(reader[0].ToString());
+                    }
+                }
+            }
+            return result;
         }
 
         /// <summary>
@@ -567,16 +607,14 @@ namespace Portable.Data.Sqlite {
         /// </summary>
         /// <param name="parameter">The parameter to be added after the value has been encrypted</param>
         public void AddEncryptedParameter(SqliteParameter parameter) {
-            lock (encryptLock) {
-                if (_cryptEngine == null) throw new Exception(NO_CRYPT_ENGINE);
-                if (parameter != null && parameter.ParameterName != null && parameter.ParameterName.Trim() != "") {
-                    if (parameter.Direction != ParameterDirection.Input)
-                        throw new ArgumentException("Only Input parameters can be encrypted.", "parameter");
-                    this.Parameters.Add(new SqliteParameter(parameter.ParameterName, DbType.String) {
-                        Value = _cryptEngine.EncryptObject(parameter.Value),
-                        Direction = ParameterDirection.Input
-                    });
-                }
+            if (_cryptEngine == null) throw new Exception(NO_CRYPT_ENGINE);
+            if (parameter != null && parameter.ParameterName != null && parameter.ParameterName.Trim() != "") {
+                if (parameter.Direction != ParameterDirection.Input)
+                    throw new ArgumentException("Only Input parameters can be encrypted.", "parameter");
+                this.Parameters.Add(new SqliteParameter(parameter.ParameterName, DbType.String) {
+                    Value = _cryptEngine.EncryptObject(parameter.Value),
+                    Direction = ParameterDirection.Input
+                });
             }
         }
 

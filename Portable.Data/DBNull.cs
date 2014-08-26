@@ -130,6 +130,23 @@ namespace Portable.Data
             return String.Empty;
         }
     }
+
+    /// <summary>
+    /// Exception indicating that a database table column value of NULL was encountered.
+    /// </summary>
+    public class DbNullException : Exception {
+        public DbNullException()
+            : base(Locale.GetText("The table column value is NULL")) {
+        }
+
+        public DbNullException(string s)
+            : base(s) {
+        }
+
+        public DbNullException(string s, Exception innerException)
+            : base(s, innerException) {
+        }
+    }
 }
 
 //#else

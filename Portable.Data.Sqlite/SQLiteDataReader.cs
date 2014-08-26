@@ -286,15 +286,17 @@ namespace Portable.Data.Sqlite {
         /// </summary>
         /// <typeparam name="T">The type of the object or value to be retrieved</typeparam>
         /// <param name="i">The index of the column to retrieve</param>
-        /// <param name="suppressExceptions">Suppress all exceptions?</param>
+        /// <param name="dbNullHandling">Determines how table column values of NULL are handled</param>
         /// <returns>Specified type</returns>
-        public T GetDecrypted<T>(int i, bool suppressExceptions = false) {
+        public T GetDecrypted<T>(int i, DbNullHandling dbNullHandling = DbNullHandling.ThrowDbNullException) {
             T result = default(T);
 
-            try {
-                if (_cryptEngine == null) throw new Exception(NO_CRYPT_ENGINE);
-                if (IsDBNull(i)) throw new Exception("The column value is NULL.");
-                if (GetSqliteType(i).Affinity != TypeAffinity.Text) 
+            if (_cryptEngine == null) throw new Exception(NO_CRYPT_ENGINE);
+            if (IsDBNull(i)) {
+                if (dbNullHandling == DbNullHandling.ThrowDbNullException) throw new DbNullException();
+            }
+            else {
+                if (GetSqliteType(i).Affinity != TypeAffinity.Text)
                     throw new Exception("The column value is not of the correct data type.");
                 var encrypted = _activeStatement._sql.GetText(_activeStatement, i);
                 if (String.IsNullOrWhiteSpace(encrypted)) {
@@ -303,9 +305,6 @@ namespace Portable.Data.Sqlite {
                 else {
                     result = _cryptEngine.DecryptObject<T>(encrypted);
                 }
-            }
-            catch (Exception) {
-                if (!suppressExceptions) throw;
             }
 
             return result;
@@ -316,10 +315,10 @@ namespace Portable.Data.Sqlite {
         /// </summary>
         /// <typeparam name="T">The type of the object or value to be retrieved</typeparam>
         /// <param name="name">The name of the column to retrieve</param>
-        /// <param name="suppressExceptions">Suppress all exceptions?</param>
+        /// <param name="dbNullHandling">Determines how table column values of NULL are handled</param>
         /// <returns>Specified type</returns>
-        public T GetDecrypted<T>(string name, bool suppressExceptions = false) {
-            return this.GetDecrypted<T>(this.GetOrdinal(name), suppressExceptions);
+        public T GetDecrypted<T>(string name, DbNullHandling dbNullHandling = DbNullHandling.ThrowDbNullException) {
+            return this.GetDecrypted<T>(this.GetOrdinal(name), dbNullHandling);
         }
 
         /// <summary>
