@@ -56,6 +56,7 @@
     <Compile Include="EncryptedTable\TableSearchItem.cs" />
     <Compile Include="HelperMethods.cs" />
     <Compile Include="ICloneable.cs" />
+    <Compile Include="IDatabasePath.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SQLiteAdoConnection.cs" />
     <Compile Include="SQLiteAdoConnectionPool.cs" />

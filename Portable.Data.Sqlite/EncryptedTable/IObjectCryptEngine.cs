@@ -15,6 +15,7 @@
 */
 
 using System;
+using System.Collections.Generic;
 
 namespace Portable.Data.Sqlite {
     /// <summary>
@@ -36,6 +37,12 @@ namespace Portable.Data.Sqlite {
         /// <param name="stringToDecrypt">The encrypted string (Base-64 encoded byte array)</param>
         /// <returns>An object of the specified type</returns>
         T DecryptObject<T>(string stringToDecrypt);
+
+        /// <summary>
+        /// Initializes the object encryption engine
+        /// </summary>
+        /// <param name="cryptoParams">A list of parameters used for initialization</param>
+        void Initialize(Dictionary<string, Object> cryptoParams);
 
     }
 }

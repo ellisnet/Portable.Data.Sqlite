@@ -43,11 +43,14 @@ So let's just get straight to the potentially difficult parts.  They are:
   1. It may be difficult to set up SQLitePCL (i.e. the Portable Class Library for SQLite mentioned above) if you are developing for a platform that doesn't come with SQLite built-in - like Windows (desktop) or Windows Store.  You have to install an add-on for Visual Studio and/or download a .DLL or two.  But there is excellent information available on the SQLitePCL CodePlex site - [documentation here](https://sqlitepcl.codeplex.com/documentation)  
 Note that there is also an extra step needed for Xamarin.iOS, where you initialize/load SQLitePCL.Ext.dll by calling *SQLitePCL.CurrentPlatform.Init()*
   2. You need to implement your chosen encryption algorithm, by creating a class that implements *Portable.Data.Sqlite.IObjectCryptEngine* - You will need to create a class that has EncryptObject() and DecryptObject&lt;T&gt;() methods.  EncryptObject() will take just about any CLR Object and will serialize it and encrypt it, and then return the byte-array as a string; DecryptObject&lt;T&gt;() will take a byte-array-as-a-string, decrypt it and de-serialize it back to an object of the type specified as &lt;T&gt;.  So, DecryptObject&lt;MyObject&gt;(myEncryptedString) should decrypt myEncryptedString and turn it into a MyObject-class object and return it.  I have found that using the popular JSON.NET library (from [here](http://www.newtonsoft.com) ) works great for the serializing and de-serializing part.  Also, if you are looking for a PCL-based library with a bunch of encryption algorithms, take a look at Bouncy Castle PCL (Portable.BouncyCastle) - available on NuGet [here](http://www.nuget.org/packages/Portable.BouncyCastle)
+  
+As of version 1.1 of the library, an *Initialize()* method is also required by the *IObjectCryptEngine* interface - as shown in the example code below. This was done to allow for the use of a parameterless constructor, as required by Xamarin.Forms.  In the example below, it is used to set the crypto key (a.k.a. password) of the encryption; but since its parameter is a dictionary of objects, you could really use to pass in any number of parameters required by your crypt engine.  You could also implement it as an empty method, and create the constructors (and other methods) that you want for initializing your crypt engine.
 
 So, here is an example of how you *could* implement *IObjectCryptEngine* - using AES encryption that comes built into the OS on all supported platforms.  The following code should provide reasonable data encryption/security, but has a few issues as described in the comments:
 
 ```c#
 using System;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
@@ -71,6 +74,7 @@ public class SimpleAesCryptEngine : IObjectCryptEngine {
 
     string _cryptoKey;
     Aes _aesProvider;
+    bool _initialized = false;
 
     private byte[] getBytes(string text, int requiredLength) {
         var result = new byte[requiredLength];
@@ -85,38 +89,48 @@ public class SimpleAesCryptEngine : IObjectCryptEngine {
         return result;
     }
 
+    //Parameterless constructor required for Xamarin.Forms
+    public SimpleAesCryptEngine() { }
+
     public SimpleAesCryptEngine(string cryptoKey) {
-        _cryptoKey = cryptoKey;
+        this.Initialize(new Dictionary<string, object>() { { "CryptoKey", cryptoKey } });
+    }
+
+    public void Initialize(Dictionary<string, object> cryptoParams) {
+        _cryptoKey = cryptoParams["CryptoKey"].ToString();
         _aesProvider = Aes.Create();
-        _aesProvider.Key = getBytes(cryptoKey, _aesProvider.Key.Length);
+        _aesProvider.Key = getBytes(_cryptoKey, _aesProvider.Key.Length);
         //Here we are using the same value for all initialization vectors.
         //  This is NOT RECOMMENDED - it should be randomly generated;
         //  however, then you need a way to retrieve it for decryption.
         //  More info: http://en.wikipedia.org/wiki/Initialization_vector
         _aesProvider.IV = getBytes("THIS SHOULD BE RANDOM", _aesProvider.IV.Length);
+        _initialized = true;
     }
 
     public T DecryptObject<T>(string stringToDecrypt) {
+        if (!_initialized) throw new Exception("Crypt engine is not initialized.");
         T result = default(T);
         if (stringToDecrypt != null) {
             byte[] bytesToDecrypt = Convert.FromBase64String(stringToDecrypt);
-            byte[] decryptedBytes = 
+            byte[] decryptedBytes =
                 _aesProvider.CreateDecryptor().TransformFinalBlock(bytesToDecrypt, 0, bytesToDecrypt.Length);
-            result = 
+            result =
                 JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(decryptedBytes));
         }
         return result;
     }
 
     public string EncryptObject(object objectToEncrypt) {
+        if (!_initialized) throw new Exception("Crypt engine is not initialized.");
         string result = null;
         if (objectToEncrypt != null) {
-            byte[] bytesToEncrypt = 
+            byte[] bytesToEncrypt =
                 Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(objectToEncrypt));
             //Not sure if I should be using TransformFinalBlock() here, 
             //  or if it is more secure if I break the byte array into
             //  blocks and process one block at a time.
-            byte[] encryptedBytes = 
+            byte[] encryptedBytes =
                 _aesProvider.CreateEncryptor().TransformFinalBlock(bytesToEncrypt, 0, bytesToEncrypt.Length);
             result = Convert.ToBase64String(encryptedBytes);
         }

@@ -77,6 +77,9 @@
     <Compile Include="..\Portable.Data.Sqlite\ICloneable.cs">
       <Link>ICloneable.cs</Link>
     </Compile>
+    <Compile Include="..\Portable.Data.Sqlite\IDatabasePath.cs">
+      <Link>IDatabasePath.cs</Link>
+    </Compile>
     <Compile Include="..\Portable.Data.Sqlite\SQLiteAdoConnection.cs">
       <Link>SQLiteAdoConnection.cs</Link>
     </Compile>

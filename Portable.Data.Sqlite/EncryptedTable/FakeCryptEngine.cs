@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 
 using Newtonsoft.Json;
@@ -18,13 +19,28 @@ namespace Portable.Data.Sqlite {
     public class FakeCryptEngine : IObjectCryptEngine {
 
         private string _cipherKey = "won't be doing anything with this";
+        private bool _initialized = false;
 
         /// <summary>
         /// DO NOT USE - only simulates encryption, data is not encrypted
         /// </summary>
         /// <param name="cipherKey">The key that WILL NOT be used for encryption</param>
         public FakeCryptEngine(string cipherKey) {
-            _cipherKey = cipherKey;
+            this.Initialize(new Dictionary<string, object>() { { "CipherKey", cipherKey } });
+        }
+
+        /// <summary>
+        /// DO NOT USE - only simulates encryption, data is not encrypted (parameterless constructor)
+        /// </summary>
+        public FakeCryptEngine() { }
+
+        /// <summary>
+        /// DO NOT USE - only simulates encryption, data is not encrypted (initializer for parameterless constructor)
+        /// </summary>
+        /// <param name="cryptoParams">A list of parameters used for initialization</param>
+        public void Initialize(Dictionary<string, object> cryptoParams) {
+            _cipherKey = cryptoParams["CipherKey"].ToString();
+            _initialized = true;
         }
 
         /// <summary>
@@ -33,6 +49,7 @@ namespace Portable.Data.Sqlite {
         /// <param name="objectToEncrypt">The .NET object that WILL NOT be encrypted</param>
         /// <returns>Unencrypted base-64 encoded byte array of the serialized object</returns>
         public string EncryptObject(object objectToEncrypt) {
+            if (!_initialized) throw new Exception("Crypt engine is not initialized.");
             return (objectToEncrypt == null) ?
                 null :
                 Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(objectToEncrypt)));
@@ -45,6 +62,7 @@ namespace Portable.Data.Sqlite {
         /// <param name="stringToDecrypt">The string that WILL NOT be decrypted</param>
         /// <returns>The deserialized object</returns>
         public T DecryptObject<T>(string stringToDecrypt) {
+            if (!_initialized) throw new Exception("Crypt engine is not initialized.");
             byte[] bytesToDecrypt = String.IsNullOrWhiteSpace(stringToDecrypt) ?
                 null :
                 Convert.FromBase64String(stringToDecrypt.Trim());
@@ -59,5 +77,6 @@ namespace Portable.Data.Sqlite {
         public void Dispose() {
             _cipherKey = null;
         }
+
     }
 }
