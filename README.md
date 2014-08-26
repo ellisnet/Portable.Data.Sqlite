@@ -32,7 +32,7 @@ Since I am adding quite a lot of information to this readme file, here is an out
   4. Example code showing use of the library, [Part 2: Using EncryptedTable&lt;T&gt;](https://github.com/ellisnet/Portable.Data.Sqlite#examples-part-2-using-encryptedtablet) - How to create an object in your code that will have a table where all of the record data is encrypted, how to read and write values, and how to perform searches of the data without the need to decrypt every object in the table.
   5. Information about storing your SQLite database password securely on the various platforms
   6. How to use this library asynchronously, using *async/await*
-  7. How to use this library with Xamarin.Forms
+  7. [How to use this library with Xamarin.Forms](https://github.com/ellisnet/Portable.Data.Sqlite#how-to-use-this-library-with-xamarinforms)
   8. How to use this library with MvvmCross
   9. Answers to frequently asked questions (FAQ)
 
@@ -486,7 +486,66 @@ Coming soon...
 
 How to Use this Library with Xamarin.Forms
 ------------------------------------------
-Coming soon...
+As of version 1.1 of this library, using it with Xamarin.Forms is easy.  I will also be providing information about using with a "Shared Code" Xamarin.Forms project in the future (it easier than with a "Portable Library" Xamarin.Forms project); but for now here are the changes needed for Xamarin.Forms (Portable library):
+
+  1. Assuming you are using an implementation of *IObjectCryptEngine* similar to the *SimpleAesCryptEngine* shown above and this class exists in the platform-specific projects, you will need to add a line above the class definition like the one below to tell Xamarin.Forms that you will be looking for this implementation of IObjectCryptEngine via the *DependencyService.Get&lt;T&gt;()* method.  With the addition of this extra line, the *SimpleAesCryptEngine* class from above should work in all platforms supported by Xamarin.Forms.
+```c#
+[assembly: Xamarin.Forms.Dependency (typeof(SimpleAesCryptEngine))]
+public class SimpleAesCryptEngine : IObjectCryptEngine {
+...
+```
+
+  2. Then, to get a handle to your crypt engine inside the Xamarin.Forms portable project (where most of your application code lives), you will need to do something like this.  The Xamarin.Forms *DependencyService* does not allow us to send in parameters in the constructor of the *IObjectCryptEngine*, so we will instead pass them via the *Initialize()* method.  Now you can use myCryptEngine in your portable code as shown in all of the examples above.
+```c#
+IObjectCryptEngine myCryptEngine = DependencyService.Get<IObjectCryptEngine> ();
+myCryptEngine.Initialize (new Dictionary<string, object>() { { "CryptoKey", "MY SECRET PASSWORD" } });
+``` 
+
+  3. Next, we need a way to get the path to our database file, and this path will probably vary with each platform.  So, we want a platform specific class that implements the *IDatabasePath* interface, that will return the path to our portable code.  The *IDatabasePath* interface only defines one method - *GetPath(string databaseName)*.  You pass in the name of your SQLite database file, and it gives you back the appropriate path to the file (the returned path includes the database file name at the end).  Here are two platform specific classes that implement *IDatabasePath*:
+```c#
+//Implementation of IDatabasePath for Xamarin.iOS
+using System;
+using Portable.Data.Sqlite;
+
+[assembly: Xamarin.Forms.Dependency (typeof(DatabasePath))]
+public class DatabasePath : IDatabasePath
+{
+	public DatabasePath () { }
+
+	public string GetPath (string databaseName)
+	{
+		string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal); // Documents folder
+		string libraryPath = System.IO.Path.Combine(documentsPath, "..", "Library"); // Library folder
+		return System.IO.Path.Combine(libraryPath, databaseName);
+	}
+}
+
+//Implementation of IDatabasePath for Xamarin.Android
+using System;
+using Portable.Data.Sqlite;
+
+[assembly: Xamarin.Forms.Dependency (typeof(DatabasePath))]
+public class DatabasePath : IDatabasePath
+{
+	public DatabasePath () { }
+
+	public string GetPath (string databaseName)
+	{
+		string libraryPath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal);
+		return System.IO.Path.Combine(libraryPath, databaseName);
+	}
+}
+```
+
+  4. Now, we can get these platform specific database paths using the following code in the Portable code project:
+```c#
+string databasePath = DependencyService.Get<IDatabasePath>().GetPath("mydatabase.sqlite");
+using (var myConnection = new SqliteAdoConnection(
+	new SQLitePCL.SQLiteConnection(databasePath), myCryptEngine)) { 
+	...
+```
+
+Except for those minor changes, all of the example code shown above should work properly in the shared/portable code section of your Xamarin.Forms application.
 
 How to Use this Library with MvvmCross
 --------------------------------------
