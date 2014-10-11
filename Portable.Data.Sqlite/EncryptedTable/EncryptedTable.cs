@@ -200,6 +200,17 @@ namespace Portable.Data.Sqlite {
             }
         }
 
+        /// <summary>
+        /// Creates an instance of the encrypted table object based on the specified values, using the CryptEngine associated with the database connection
+        /// </summary>
+        /// <param name="dbConnection">The SQLite database connection to be used when interacting with the table</param>
+        /// <param name="checkDbTable">Check to make sure the associated SQLite table exists, and create if necessary</param>
+        /// <param name="tableName">Specify a desired name of the SQLite table, instead of using a name derived from the object type</param>
+        public EncryptedTable(SqliteAdoConnection dbConnection, bool checkDbTable = true, string tableName = null)
+            : this(((dbConnection == null) ? null : dbConnection._cryptEngine), 
+            dbConnection, checkDbTable, tableName) {
+        }
+
         #endregion
 
         /// <summary>

@@ -44,12 +44,60 @@ namespace Portable.Data.Sqlite {
         List<TableSearchItem> _matchItems = new List<TableSearchItem>();
         TableSearchType _searchType = TableSearchType.MatchAll;
 
+        SearchItemCaseSensitivity _forcedItemCaseSensitivity = SearchItemCaseSensitivity.CaseInsensitive;
+        bool _caseSensitivityForced = false;
+        SearchItemTrimming _forcedItemTrimming = SearchItemTrimming.AutoTrim;
+        bool _trimmingForced = false;
+
+        /// <summary>
+        /// Set the (forced) Case Sensitivity of all table search match items
+        /// </summary>
+        public SearchItemCaseSensitivity ForcedItemCaseSensitivity {
+            set { _forcedItemCaseSensitivity = value; _caseSensitivityForced = true;  }
+        }
+
+        /// <summary>
+        /// Set the (forced) Trimming of all table search match items
+        /// </summary>
+        public SearchItemTrimming ForcedItemTrimming {
+            set { _forcedItemTrimming = value; _trimmingForced = true; }
+        }
+
         /// <summary>
         /// List of properties and values to be used in identifying matching objects - IMPORTANT: If this list contains no members, all compared objects will match
         /// </summary>
         public List<TableSearchItem> MatchItems {
-            get { return _matchItems; }
-            set { _matchItems = value ?? new List<TableSearchItem>(); }
+            get {
+                if (_caseSensitivityForced) {
+                    foreach (var item in _matchItems) {
+                        item.CaseSensitivity = _forcedItemCaseSensitivity;
+                    }
+                }
+                if (_trimmingForced) {
+                    foreach (var item in _matchItems) {
+                        item.Trimming = _forcedItemTrimming;
+                    }
+                }
+                return _matchItems; 
+            }
+            set {
+                if (value == null) {
+                    _matchItems = new List<TableSearchItem>();
+                }
+                else {
+                    _matchItems = value;
+                    if (_caseSensitivityForced) {
+                        foreach (var item in _matchItems) {
+                            item.CaseSensitivity = _forcedItemCaseSensitivity;
+                        }
+                    }
+                    if (_trimmingForced) {
+                        foreach (var item in _matchItems) {
+                            item.Trimming = _forcedItemTrimming;
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>
