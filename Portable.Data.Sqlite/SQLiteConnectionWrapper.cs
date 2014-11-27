@@ -90,6 +90,13 @@ namespace Portable.Data.Sqlite.Wrapper {
                 strSql = (strSql ?? "").Trim();
                 do {
                     try {
+
+                        //TODO: The logic for separating multiple SQL statements is quite weak here
+                        //  and there really needs to be better parsing of the statement(s) to identify the statement
+                        //  to be run vs. the "remaining" SQL.
+                        //  In particular, this code does not properly handle semi-colons within quotes - e.g. text values
+                        //  with semi-colons in them - and semi-colons in comments.
+
                         if (strSql == "") break;
                         while (strSql.Length > 1 && strSql.Substring(0, 1) == ";") {
                             strSql = strSql.Substring(1).Trim();
@@ -97,8 +104,9 @@ namespace Portable.Data.Sqlite.Wrapper {
                         if (strSql == "" || strSql == ";") break;
 
                         if (strSql.IndexOf(";") > 0 && strSql.IndexOf(";") < (strSql.Length - 1)) {
+                            string origSql = strSql;
                             strSql = strSql.Substring(0, (strSql.IndexOf(";") + 1));
-                            strRemain = strSql.Substring(strSql.IndexOf(";") + 1);
+                            strRemain = origSql.Substring(origSql.IndexOf(";") + 1);
                         }
 
                         var stmt = _sqliteDbConnection.Prepare(strSql);
