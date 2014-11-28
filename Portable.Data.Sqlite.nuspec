@@ -2,14 +2,16 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
     <metadata>
         <id>Portable.Data.Sqlite</id>
-        <version>1.1.1</version>
+        <version>1.1.2</version>
         <title>Portable ADO-style SQLite with Encryption</title>
         <authors>Jeremy Ellis,Matthew Leibowitz</authors>
         <owners>Ellisnet</owners>
         <projectUrl>https://github.com/ellisnet/Portable.Data.Sqlite</projectUrl>
         <requireLicenseAcceptance>false</requireLicenseAcceptance>
         <description>Portable cross-platform ADO-style SQLite library enabling table-record-level and table-column-level encryption.  *Please see the project site for details about what this library does, and how to use it.*</description>
-        <releaseNotes>v1.1.1 - No breaking changes. New constructor for EncryptedTable that allows CryptEngine to be "inherited" from database connection; new ability to set case sensitivity and trimming on all TableSearch match items by "forced" properties.
+        <releaseNotes>v1.1.2 - No breaking changes. Bug fix for a problem that occured with a multiple statement SQL scripts; where only the first statement would execute.
+
+v1.1.1 - No breaking changes. New constructor for EncryptedTable that allows CryptEngine to be "inherited" from database connection; new ability to set case sensitivity and trimming on all TableSearch match items by "forced" properties.
 
 v1.1.0 - Tweaked for use with Xamarin.Forms.  Added IDatabasePath interface, and added parameterless constructor for IObjectCryptEngine (as required by Xamarin.Forms).  Breaking change from v1.0.0:  Implementations of IObjectCryptEngine must implement the Initialize() method, in order to provide a way to pass in settings when using the parameterless constructor.
 
