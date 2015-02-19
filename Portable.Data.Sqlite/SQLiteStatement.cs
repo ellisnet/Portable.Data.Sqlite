@@ -199,6 +199,7 @@ namespace Portable.Data.Sqlite {
             //check for duplicate parameters and only process unique ones - matches how SQLite processes parameters
             if (_paramNames.Length > 0) {
                 var usedParams = new List<string>();
+                int paramIndex = 0;
                 for (int n = 0; n < _paramNames.Length; n++) {
                     if (String.IsNullOrWhiteSpace(_paramNames[n])) {
                         if (n < (_paramNames.Length - 1)) {
@@ -210,7 +211,9 @@ namespace Portable.Data.Sqlite {
                         string currentParam = _paramNames[n].Trim().ToLower();
                         if (!paramDictionary.ContainsKey(currentParam)) { throw new Exception("No value specified for SQLite parameter '" + _paramNames[n] + "'."); }
                         if (!usedParams.Contains(currentParam)) {
-                            BindParameter(n + 1, paramDictionary[currentParam]);
+                            paramIndex++;
+                            BindParameter(paramIndex, paramDictionary[currentParam]);
+                            //BindParameter(n + 1, paramDictionary[currentParam]);
                             usedParams.Add(currentParam);
                         }
                     }
