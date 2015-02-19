@@ -9,6 +9,7 @@
 namespace Portable.Data.Sqlite {
     using System;
     //using System.Data;
+    using System.Linq;
     using Portable.Data;
     using System.Collections.Generic;
     using System.Globalization;
@@ -182,15 +183,46 @@ namespace Portable.Data.Sqlite {
         #endregion
 
         /// <summary>
-        ///  Bind all parameters, making sure the caller didn't miss any
+        ///  Bind all parameters, reconcile parameters found with specified parameter values
         /// </summary>
         internal void BindParameters() {
             if (_paramNames == null) return;
 
-            int x = _paramNames.Length;
-            for (int n = 0; n < x; n++) {
-                BindParameter(n + 1, _paramValues[n]);
+            //creating a dictionary of parameter names - should not have two parameter values with the same parameter name
+            var paramDictionary = new Dictionary<string, SqliteParameter>();
+            foreach (SqliteParameter parameter in _paramValues) {
+                if (parameter != null && (!String.IsNullOrWhiteSpace(parameter.ParameterName))) {
+                    paramDictionary.Add(parameter.ParameterName.Trim().ToLower(), parameter);
+                }
             }
+
+            //check for duplicate parameters and only process unique ones - matches how SQLite processes parameters
+            if (_paramNames.Length > 0) {
+                var usedParams = new List<string>();
+                for (int n = 0; n < _paramNames.Length; n++) {
+                    if (String.IsNullOrWhiteSpace(_paramNames[n])) {
+                        if (n < (_paramNames.Length - 1)) {
+                            //ignoring a blank parameter if it is the last one
+                            throw new Exception("Cannot have a blank or null parameter name.");
+                        }
+                    }
+                    else {
+                        string currentParam = _paramNames[n].Trim().ToLower();
+                        if (!paramDictionary.ContainsKey(currentParam)) { throw new Exception("No value specified for SQLite parameter '" + _paramNames[n] + "'."); }
+                        if (!usedParams.Contains(currentParam)) {
+                            BindParameter(n + 1, paramDictionary[currentParam]);
+                            usedParams.Add(currentParam);
+                        }
+                    }
+                }
+            }
+
+            //for (int n = 0; n < _paramNames.Length; n++) {
+            //    if (String.IsNullOrWhiteSpace(_paramNames[n])) {  }
+            //    if (!paramDictionary.ContainsKey(_paramNames[n].Trim().ToLower())) { throw new Exception("No value specified for SQLite parameter '" + _paramNames[n] + "'."); }
+
+            //    BindParameter(n + 1, paramDictionary[_paramNames[n].Trim().ToLower()]);
+            //}
         }
 
         /// <summary>

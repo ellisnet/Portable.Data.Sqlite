@@ -141,7 +141,7 @@ public class SimpleAesCryptEngine : IObjectCryptEngine {
 
     public void Dispose() {
         _cryptoKey = null;
-        _aesProvider.Dispose();
+        if (_aesProvider != null) { _aesProvider.Dispose(); }
         _aesProvider = null;
     }
 }
