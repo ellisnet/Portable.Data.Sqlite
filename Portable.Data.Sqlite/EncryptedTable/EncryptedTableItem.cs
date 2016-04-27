@@ -14,12 +14,14 @@
    limitations under the License.
 */
 
+// ReSharper disable InconsistentNaming
+// ReSharper disable RedundantDefaultMemberInitializer
+// ReSharper disable ArrangeThisQualifier
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Portable.Data.Sqlite {
 
@@ -80,7 +82,7 @@ namespace Portable.Data.Sqlite {
         /// </summary>
         public virtual bool IsDirty {
             get {
-                return !(_syncStatus == TableItemStatus.MatchesDb);
+                return (_syncStatus != TableItemStatus.MatchesDb);
             }
         }
 
@@ -245,8 +247,8 @@ namespace Portable.Data.Sqlite {
         /// <param name="cryptEngine">The cryptography 'engine' to be used for encryption</param>
         /// <returns>Encrypted string</returns>
         public static string EncryptObject(IEncryptedTableItem objectToEncrypt, IObjectCryptEngine cryptEngine) {
-            if (objectToEncrypt == null) throw new ArgumentNullException("objectToEncrypt");
-            if (cryptEngine == null) throw new ArgumentNullException("cryptEngine");
+            if (objectToEncrypt == null) throw new ArgumentNullException(nameof(objectToEncrypt));
+            if (cryptEngine == null) throw new ArgumentNullException(nameof(cryptEngine));
             return cryptEngine.EncryptObject(objectToEncrypt);
         }
 
@@ -257,8 +259,8 @@ namespace Portable.Data.Sqlite {
         /// <param name="cryptEngine">The cryptography 'engine' to be used for encryption</param>
         /// <returns>Encrypted string</returns>
         public static string EncryptObjectSearchIndex(IEncryptedTableItem objectToEncrypt, IObjectCryptEngine cryptEngine) {
-            if (objectToEncrypt == null) throw new ArgumentNullException("objectToEncrypt");
-            if (cryptEngine == null) throw new ArgumentNullException("cryptEngine");
+            if (objectToEncrypt == null) throw new ArgumentNullException(nameof(objectToEncrypt));
+            if (cryptEngine == null) throw new ArgumentNullException(nameof(cryptEngine));
             return cryptEngine.EncryptObject(objectToEncrypt.SearchablePropertyIndex);
         }
 
@@ -277,7 +279,7 @@ namespace Portable.Data.Sqlite {
         /// <param name="cryptEngine">The cryptography 'engine' to be used for encryption</param>
         /// <returns>Encrypted string</returns>
         public string Encrypt(IObjectCryptEngine cryptEngine) {
-            if (cryptEngine == null) throw new ArgumentNullException("cryptEngine");
+            if (cryptEngine == null) throw new ArgumentNullException(nameof(cryptEngine));
             return EncryptedTableItem.EncryptObject(this, cryptEngine);
         }
 
@@ -296,7 +298,7 @@ namespace Portable.Data.Sqlite {
         /// <param name="cryptEngine">The cryptography 'engine' to be used for encryption</param>
         /// <returns>Encrypted string</returns>
         public string EncryptSearchable(IObjectCryptEngine cryptEngine) {
-            if (cryptEngine == null) throw new ArgumentNullException("cryptEngine");
+            if (cryptEngine == null) throw new ArgumentNullException(nameof(cryptEngine));
             return EncryptedTableItem.EncryptObjectSearchIndex(this, cryptEngine);
         }
 

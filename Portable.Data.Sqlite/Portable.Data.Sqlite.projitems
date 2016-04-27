@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>15fa36b3-c83c-4a8d-8499-cc9549a169c1</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>Portable.Data</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)CommandBehavior.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CommandType.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Common\DbConnectionStringBuilder.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Common\DbException.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ConnectionState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DataRowVersion.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DataTable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DBNull.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)DbType.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)EncryptedTable\EncryptedTable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)EncryptedTable\EncryptedTableItem.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)EncryptedTable\IEncryptedTableItem.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)EncryptedTable\ItemPropertyAttributes.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)EncryptedTable\TableColumn.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)EncryptedTable\TableIndex.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)EncryptedTable\TableSearch.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)EncryptedTable\TableSearchItem.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)IDataParameter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)IDataParameterCollection.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)IDataReader.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)IDataRecord.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)IDbCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)IDbConnection.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)IDbDataParameter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)IDbTransaction.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)IsolationLevel.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ParameterDirection.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\IDatabasePath.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\IObjectCryptEngine.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\LogEventArgs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\SqliteConversion.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\SqliteLockContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\NativeMethods.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\SqliteBackupHandle.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\SqliteColumnType.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\SqliteCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\SqliteConnection.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\SqliteConnectionStringBuilder.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\SqliteDatabaseHandle.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\SqliteDataReader.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\SqliteErrorCode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\SqliteException.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\SqliteLog.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\SqliteOpenFlags.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\SqliteParameter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\SqliteParameterCollection.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\SqliteStatementHandle.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\SqliteStatementPreparer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\SqliteTransaction.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\StatementCompletedEventArgs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\Thread.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Sqlite\Utility.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)StateChangeEventArgs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UpdateRowSource.cs" />
+  </ItemGroup>
+</Project>

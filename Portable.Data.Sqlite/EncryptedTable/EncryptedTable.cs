@@ -14,12 +14,15 @@
    limitations under the License.
 */
 
+// ReSharper disable RedundantDefaultMemberInitializer
+// ReSharper disable InconsistentNaming
+// ReSharper disable StaticMemberInGenericType
+// ReSharper disable ArrangeThisQualifier
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Portable.Data.Sqlite {
 
@@ -56,7 +59,7 @@ namespace Portable.Data.Sqlite {
 
         private IObjectCryptEngine _cryptEngine;
         private string _tableName;
-        private SqliteAdoConnection _dbConnection;
+        private SqliteConnection _dbConnection;
         private List<T> _tempItems = new List<T>();
         private bool _dbTableChecked = false;
         private TableIndex _fullTableIndex = null;
@@ -114,7 +117,7 @@ namespace Portable.Data.Sqlite {
         /// <summary>
         /// The SQLite database connection to be used when interacting with the table
         /// </summary>
-        public SqliteAdoConnection DbConnection {
+        public SqliteConnection DbConnection {
             get { return _dbConnection; }
             set { _dbConnection = value; }
         }
@@ -176,8 +179,8 @@ namespace Portable.Data.Sqlite {
         /// <param name="dbConnection">The SQLite database connection to be used when interacting with the table</param>
         /// <param name="checkDbTable">Check to make sure the associated SQLite table exists, and create if necessary</param>
         /// <param name="tableName">Specify a desired name of the SQLite table, instead of using a name derived from the object type</param>
-        public EncryptedTable(IObjectCryptEngine cryptEngine, SqliteAdoConnection dbConnection = null, bool checkDbTable = true, string tableName = null) {
-            if (cryptEngine == null) throw new ArgumentNullException("cryptEngine");
+        public EncryptedTable(IObjectCryptEngine cryptEngine, SqliteConnection dbConnection = null, bool checkDbTable = true, string tableName = null) {
+            if (cryptEngine == null) throw new ArgumentNullException(nameof(cryptEngine));
             _cryptEngine = cryptEngine;
             _dbConnection = dbConnection;
             tableName = (String.IsNullOrWhiteSpace(tableName) ? null : tableName.Trim());
@@ -206,7 +209,7 @@ namespace Portable.Data.Sqlite {
         /// <param name="dbConnection">The SQLite database connection to be used when interacting with the table</param>
         /// <param name="checkDbTable">Check to make sure the associated SQLite table exists, and create if necessary</param>
         /// <param name="tableName">Specify a desired name of the SQLite table, instead of using a name derived from the object type</param>
-        public EncryptedTable(SqliteAdoConnection dbConnection, bool checkDbTable = true, string tableName = null)
+        public EncryptedTable(SqliteConnection dbConnection, bool checkDbTable = true, string tableName = null)
             : this(((dbConnection == null) ? null : dbConnection._cryptEngine), 
             dbConnection, checkDbTable, tableName) {
         }
@@ -272,31 +275,31 @@ namespace Portable.Data.Sqlite {
                                 throw new Exception(String.Format("'{0}' is a reserved column name and cannot be re-used.", columnName));
 
                             string netType = prop.PropertyType.FullName;
-                            TypeAffinity affinity = SqliteConvert.TypeToAffinity(Type.GetType(netType));
+                            SqliteColumnType colType = SqliteConversion.TypeToColumnType(Type.GetType(netType));
                             string dbType = "";
                             string defaultValue = null;
                             if (prop.HasAttribute(typeof(ColumnDefaultValueAttribute))) {
                                 defaultValue = ((ColumnDefaultValueAttribute)prop.GetCustomAttributes(typeof(ColumnDefaultValueAttribute), true).Single()).Value;
                             }
-                            switch (affinity) {
-                                case TypeAffinity.Int64:
+                            switch (colType) {
+                                case SqliteColumnType.Integer:
                                     dbType = "INTEGER";
                                     Int64 testInt;
                                     if (defaultValue != null && !Int64.TryParse(defaultValue, out testInt))
                                         throw new Exception(String.Format("The default value for column [{0}] ('{1}') cannot be converted to SQLite type {2}",
                                             columnName, defaultValue, dbType));
                                     break;
-                                case TypeAffinity.Double:
+                                case SqliteColumnType.Double:
                                     dbType = "REAL";
                                     double testDouble;
                                     if (defaultValue != null && !Double.TryParse(defaultValue, out testDouble))
                                         throw new Exception(String.Format("The default value for column [{0}] ('{1}') cannot be converted to SQLite type {2}",
                                             columnName, defaultValue, dbType));
                                     break;
-                                case TypeAffinity.Text:
+                                case SqliteColumnType.Text:
                                     dbType = "TEXT";
                                     break;
-                                case TypeAffinity.DateTime:
+                                case SqliteColumnType.ConvDateTime:
                                     dbType = "DATETIME";
                                     DateTime testDate;
                                     if (defaultValue != null && !DateTime.TryParse(defaultValue, out testDate))
@@ -415,8 +418,9 @@ namespace Portable.Data.Sqlite {
             long currentId;
 
             using (var cmd = new SqliteCommand(sql, _dbConnection)) {
+                cmd._cryptEngine = _cryptEngine;
                 if (_dbConnection.State == ConnectionState.Closed) _dbConnection.Open();
-                using (var dr = new SqliteDataReader(cmd, CommandBehavior.Default, _cryptEngine)) {
+                using (var dr = new SqliteDataReader(cmd)) {
                     while (dr.Read()) {
                         result++;
                         currentId = dr.GetInt64("Id");
@@ -529,7 +533,7 @@ namespace Portable.Data.Sqlite {
         private bool _updateItem(T item, bool noCheck = false, bool allowWriteNew = false, bool writeMissingAsNew = false, bool skipUpdateIndex = false) {
             bool result = false;
 
-            if (item == null) throw new ArgumentNullException("item");
+            if (item == null) throw new ArgumentNullException(nameof(item));
             if (_cryptEngine == null) throw new Exception(NO_CRYPT_ENGINE);
             if (_dbConnection == null) throw new Exception(NO_DB_CONNECTION);
 
@@ -601,7 +605,7 @@ namespace Portable.Data.Sqlite {
         private bool _deleteItem(T item, bool noCheck = true, bool skipUpdateIndex = false) {
             bool result = false;
 
-            if (item == null) throw new ArgumentNullException("item");
+            if (item == null) throw new ArgumentNullException(nameof(item));
             if (_dbConnection == null) throw new Exception(NO_DB_CONNECTION);
 
             if (!_dbTableChecked) _checkDbTable();
@@ -912,7 +916,7 @@ namespace Portable.Data.Sqlite {
         /// Check to make sure the associated SQLite table exists, and create if necessary
         /// </summary>
         /// <param name="dbConnection">The SQLite database connection to be used when interacting with the table</param>
-        public void CheckDbTable(SqliteAdoConnection dbConnection = null) {
+        public void CheckDbTable(SqliteConnection dbConnection = null) {
             _dbConnection = dbConnection ?? _dbConnection;
             lock (dbLock) {
                 _checkDbTable();
@@ -1057,7 +1061,7 @@ namespace Portable.Data.Sqlite {
         /// <param name="rebuildFullIndex">After writing changes, perform a rebuild of the in-memory table index</param>
         /// <param name="dbConnection">The SQLite database connection to be used when interacting with the table</param>
         /// <returns>The number of table records modified</returns>
-        public int WriteItemChanges(bool forceWriteAll = false, bool rebuildFullIndex = false, SqliteAdoConnection dbConnection = null) {
+        public int WriteItemChanges(bool forceWriteAll = false, bool rebuildFullIndex = false, SqliteConnection dbConnection = null) {
             int result = 0;
 
             if (_cryptEngine == null) throw new Exception(NO_CRYPT_ENGINE);
@@ -1116,7 +1120,7 @@ namespace Portable.Data.Sqlite {
         /// </summary>
         /// <param name="forceWriteAll">Write all objects in the TempItems collection to the table, even if they are marked as matching the table</param>
         /// <param name="dbConnection">The SQLite database connection to be used when interacting with the table</param>
-        public void WriteChangesAndFlush(bool forceWriteAll = false, SqliteAdoConnection dbConnection = null) {
+        public void WriteChangesAndFlush(bool forceWriteAll = false, SqliteConnection dbConnection = null) {
             this.WriteItemChanges(forceWriteAll, false, dbConnection);
             _fullTableIndex = null;
             this.TempItems = null;
@@ -1131,7 +1135,7 @@ namespace Portable.Data.Sqlite {
         public long AddItem(T item, bool immediateWriteToTable = false) {
             Int64 result = -1;
 
-            if (item == null) throw new ArgumentNullException("item");
+            if (item == null) throw new ArgumentNullException(nameof(item));
 
             item.SyncStatus = TableItemStatus.New;
 
@@ -1264,8 +1268,9 @@ namespace Portable.Data.Sqlite {
                     if (!_dbTableChecked) _checkDbTable();
 
                     using (var cmd = new SqliteCommand(_getIndexSearchSql(search), _dbConnection)) {
+                        cmd._cryptEngine = _cryptEngine;
                         if (_dbConnection.State == ConnectionState.Closed) _dbConnection.Open();
-                        using (var dr = new SqliteDataReader(cmd, CommandBehavior.Default, _cryptEngine)) {
+                        using (var dr = new SqliteDataReader(cmd)) {
                             while (dr.Read()) {
                                 currentId = dr.GetInt64("Id");
                                 try {
@@ -1315,7 +1320,7 @@ namespace Portable.Data.Sqlite {
         public T GetItem(long itemId, bool exceptionOnMissingItem = false) {
             T result = default(T);
 
-            if (itemId < 0) throw new ArgumentOutOfRangeException("itemId");
+            if (itemId < 0) throw new ArgumentOutOfRangeException(nameof(itemId));
 
             if (_tempItems.Where(i => i.Id == itemId).Count() == 1) {
                 result = _tempItems.Where(i => i.Id == itemId).Single();
@@ -1331,9 +1336,10 @@ namespace Portable.Data.Sqlite {
                     if (!_dbTableChecked) _checkDbTable();
                     string sql = String.Format("SELECT [Encrypted_Object] FROM [{0}] WHERE [Id] = @ID;", _tableName);
                     using (var cmd = new SqliteCommand(sql, _dbConnection)) {
+                        cmd._cryptEngine = _cryptEngine;
                         cmd.Parameters.Add(new SqliteParameter("@ID", itemId));
                         if (_dbConnection.State == ConnectionState.Closed) _dbConnection.Open();
-                        using (var dr = new SqliteDataReader(cmd, CommandBehavior.Default, _cryptEngine)) {
+                        using (var dr = new SqliteDataReader(cmd)) {
                             while (dr.Read()) {
                                 if (recordFound) {
                                     throw new Exception("Multiple items were found with ID: " + itemId.ToString());

@@ -1,8 +1,13 @@
 ﻿<Application x:Class="SampleApp.Wpf.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:SampleApp.Wpf"
+             xmlns:viewModels="clr-namespace:SampleApp.Wpf.ViewModels"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+        <!-- Note that since my ViewModels are in a separate 'MyApplication.ViewModels' namespace -
+            I needed to add the following namespace reference line above:
+            xmlns:viewModels="clr-namespace:MyApplication.ViewModels" -->
+        <viewModels:MainViewModel x:Key="MainViewModel" />
     </Application.Resources>
 </Application>

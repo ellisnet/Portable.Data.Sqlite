@@ -1,0 +1,439 @@
+﻿// ReSharper disable InconsistentNaming
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
+
+namespace Portable.Data.Sqlite {
+
+	public sealed class SqliteConnection : IDbConnection {
+
+        public event StateChangeEventHandler StateChange;
+
+        private static readonly SqliteLockContext _defaultLockContext = new SqliteLockContext();
+	    internal static SqliteLockContext GetDefaultLockContext() {
+	        return _defaultLockContext;
+	    }
+
+	    private SqliteLockContext _lockContext;
+        public SqliteLockContext LockContext {
+            get { return _lockContext; }
+            set { _lockContext = value ?? _defaultLockContext; }
+        }
+
+        internal IObjectCryptEngine _cryptEngine = null;
+        //private static readonly string NO_CRYPT_ENGINE = "Cryptography has not been enabled on this SQLite connection.";
+
+        public SqliteConnection() {
+            _lockContext = _defaultLockContext;
+			SqliteLog.Initialize(_lockContext);
+            m_transactions = new Stack<SqliteTransaction>();
+		}
+
+        public SqliteConnection(IObjectCryptEngine cryptEngine) {
+            _lockContext = _defaultLockContext;
+            _cryptEngine = cryptEngine;
+            SqliteLog.Initialize(_lockContext);
+            m_transactions = new Stack<SqliteTransaction>();
+        }
+
+        public SqliteConnection(SqliteLockContext lockContext, IObjectCryptEngine cryptEngine = null) {
+            _lockContext = lockContext ?? _defaultLockContext;
+            _cryptEngine = cryptEngine;
+            SqliteLog.Initialize(_lockContext);
+            m_transactions = new Stack<SqliteTransaction>();
+        }
+
+        public SqliteConnection(string connectionString, bool connectStringIsDbFilePath = false)
+            : this(connectionString, null, connectStringIsDbFilePath) 
+        {
+        }
+
+        public SqliteConnection(string connectionString, IObjectCryptEngine cryptEngine = null, bool connectStringIsDbFilePath = false)
+			: this(cryptEngine) {
+		    ConnectionString = connectStringIsDbFilePath ? 
+                (new SqliteConnectionStringBuilder {DataSource = connectionString}).ConnectionString : 
+                connectionString;
+		}
+
+        public SqliteConnection(string connectionString, SqliteLockContext lockContext, IObjectCryptEngine cryptEngine = null, bool connectStringIsDbFilePath = false)
+            : this(lockContext, cryptEngine) {
+            ConnectionString = connectStringIsDbFilePath ?
+                (new SqliteConnectionStringBuilder { DataSource = connectionString }).ConnectionString :
+                connectionString;
+        }
+
+        public SqliteConnection(IntPtr db, SqliteLockContext lockContext = null, IObjectCryptEngine cryptEngine = null)
+			: this(lockContext, cryptEngine) {
+			m_db = new SqliteDatabaseHandle(db, lockContext ?? _defaultLockContext);
+			SetState(ConnectionState.Open);
+		}
+
+		public IDbTransaction BeginTransaction() {
+            return BeginTransaction(IsolationLevel.Unspecified);
+        }
+
+		public IDbTransaction BeginTransaction(IsolationLevel isolationLevel) {
+			if (isolationLevel == IsolationLevel.Unspecified)
+				isolationLevel = IsolationLevel.Serializable;
+			if (isolationLevel != IsolationLevel.Serializable && isolationLevel != IsolationLevel.ReadCommitted)
+				throw new ArgumentOutOfRangeException(nameof(isolationLevel), isolationLevel, "Specified IsolationLevel value is not supported.");
+
+			if (m_transactions.Count == 0)
+				this.ExecuteNonQuery(isolationLevel == IsolationLevel.Serializable ? "BEGIN IMMEDIATE" : "BEGIN");
+			m_transactions.Push(new SqliteTransaction(this, isolationLevel));
+			return CurrentTransaction;
+		}
+
+		public void Close() {
+			Dispose();
+		}
+
+	    public void SafeClose() {
+	        this.Close();
+	    }
+
+		public void ChangeDatabase(string databaseName) {
+			throw new NotSupportedException();
+		}
+
+	    public void SafeOpen() {
+	        if (this.State == ConnectionState.Closed) {
+	            this.Open();
+	        }
+	    }
+
+		public void Open() {
+
+			VerifyNotDisposed();
+			if (State != ConnectionState.Closed)
+				throw new InvalidOperationException("Cannot Open when State is {0}.".FormatInvariant(State));
+
+			var connectionStringBuilder = new SqliteConnectionStringBuilder { ConnectionString = ConnectionString };
+			m_dataSource = connectionStringBuilder.DataSource;
+			if (string.IsNullOrEmpty(m_dataSource))
+				throw new InvalidOperationException("Connection String Data Source must be set.");
+
+			SqliteOpenFlags openFlags = connectionStringBuilder.ReadOnly ? SqliteOpenFlags.ReadOnly : SqliteOpenFlags.ReadWrite;
+			if (!connectionStringBuilder.FailIfMissing && !connectionStringBuilder.ReadOnly)
+				openFlags |= SqliteOpenFlags.Create;
+
+			SetState(ConnectionState.Connecting);
+
+			Match m = s_vfsRegex.Match(m_dataSource);
+			string fileName = m.Groups["fileName"].Value;
+			string vfsName = m.Groups["vfsName"].Value;
+
+			var errorCode = _lockContext.sqlite3_open_v2(ToNullTerminatedUtf8(fileName), out m_db, openFlags, string.IsNullOrEmpty(vfsName) ? null : ToNullTerminatedUtf8(vfsName));
+
+            bool success = false;
+			try
+			{
+				if (errorCode != SqliteErrorCode.Ok)
+				{
+					SetState(ConnectionState.Broken);
+					errorCode.ThrowOnError();
+				}
+
+				if (!string.IsNullOrEmpty(connectionStringBuilder.Password))
+				{
+					byte[] passwordBytes = Encoding.UTF8.GetBytes(connectionStringBuilder.Password);
+                    _lockContext.sqlite3_key(m_db, passwordBytes, passwordBytes.Length).ThrowOnError();
+				}
+
+                bool allowOpenReadOnly = true;
+#if MONOANDROID
+				// opening read-only throws "EntryPointNotFoundException: sqlite3_db_readonly" on Android API 15 and below (JellyBean is API 16)
+				allowOpenReadOnly = Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.JellyBean;
+#endif
+                if (allowOpenReadOnly) {
+                    int isReadOnly = _lockContext.sqlite3_db_readonly(m_db, "main");
+                    if (isReadOnly == 1 && !connectionStringBuilder.ReadOnly)
+                        throw new SqliteException(SqliteErrorCode.ReadOnly);
+                }
+
+				if (connectionStringBuilder.CacheSize != 0)
+					this.ExecuteNonQuery("pragma cache_size={0}".FormatInvariant(connectionStringBuilder.CacheSize));
+
+				if (connectionStringBuilder.PageSize != 0)
+					this.ExecuteNonQuery("pragma page_size={0}".FormatInvariant(connectionStringBuilder.PageSize));
+
+				if (connectionStringBuilder.ContainsKey(SqliteConnectionStringBuilder.MmapSizeKey))
+					this.ExecuteNonQuery("pragma mmap_size={0}".FormatInvariant(connectionStringBuilder.MmapSize));
+
+				if (connectionStringBuilder.ForeignKeys)
+					this.ExecuteNonQuery("pragma foreign_keys = on");
+
+				if (connectionStringBuilder.JournalMode != SqliteJournalModeEnum.Default)
+					this.ExecuteNonQuery("pragma journal_mode={0}".FormatInvariant(connectionStringBuilder.JournalMode));
+
+				if (connectionStringBuilder.ContainsKey(SqliteConnectionStringBuilder.SynchronousKey))
+					this.ExecuteNonQuery("pragma synchronous={0}".FormatInvariant(connectionStringBuilder.SyncMode));
+
+				if (connectionStringBuilder.TempStore != SqliteTemporaryStore.Default)
+					this.ExecuteNonQuery("pragma temp_store={0}".FormatInvariant(connectionStringBuilder.TempStore));
+
+				if (m_statementCompleted != null)
+					SetProfileCallback(s_profileCallback);
+
+				SetState(ConnectionState.Open);
+				success = true;
+			}
+			finally
+			{
+				if (!success)
+					Utility.Dispose(ref m_db);
+			}
+		}
+
+		public string ConnectionString { get; set; }
+
+        public string Database {
+			get { throw new NotSupportedException(); }
+		}
+
+		public ConnectionState State {
+			get { return m_connectionState; }
+		}
+
+		public string DataSource {
+			get { return m_dataSource; }
+		}
+
+		public string ServerVersion {
+			get { throw new NotSupportedException(); }
+		}
+
+		public IDbCommand CreateCommand() {
+			return new SqliteCommand(this);
+		}
+
+		public int ConnectionTimeout {
+			get { throw new NotSupportedException(); }
+		}
+
+		/// <summary>Backs up the database, using the specified database connection as the destination.</summary>
+		/// <param name="destination">The destination database connection.</param>
+		/// <param name="destinationName">The destination database name (usually <c>"main"</c>).</param>
+		/// <param name="sourceName">The source database name (usually <c>"main"</c>).</param>
+		/// <param name="pages">The number of pages to copy, or negative to copy all remaining pages.</param>
+		/// <param name="callback">The method to invoke between each step of the backup process.  This
+		/// parameter may be <c>null</c> (i.e., no callbacks will be performed).</param>
+		/// <param name="retryMilliseconds">The number of milliseconds to sleep after encountering a locking error
+		/// during the backup process.  A value less than zero means that no sleep should be performed.</param>
+		public void BackupDatabase(SqliteConnection destination, string destinationName, string sourceName, int pages, SqliteBackupCallback callback, int retryMilliseconds) {
+			VerifyNotDisposed();
+			if (m_connectionState != ConnectionState.Open)
+				throw new InvalidOperationException("Source database is not open.");
+			if (destination == null)
+				throw new ArgumentNullException(nameof(destination));
+			if (destination.m_connectionState != ConnectionState.Open)
+				throw new ArgumentException("Destination database is not open.", nameof(destination));
+			if (destinationName == null)
+				throw new ArgumentNullException(nameof(destinationName));
+			if (sourceName == null)
+				throw new ArgumentNullException(nameof(sourceName));
+			if (pages == 0)
+				throw new ArgumentException("pages must not be 0.", nameof(pages));
+
+			using (SqliteBackupHandle backup = _lockContext.sqlite3_backup_init(destination.m_db, ToNullTerminatedUtf8(destinationName), m_db, ToNullTerminatedUtf8(sourceName)))
+			{
+				if (backup == null)
+					throw new SqliteException(_lockContext.sqlite3_errcode(m_db), m_db);
+
+				while (true)
+				{
+					SqliteErrorCode error = _lockContext.sqlite3_backup_step(backup, pages);
+
+					if (error == SqliteErrorCode.Done)
+					{
+						break;
+					}
+					else if (error == SqliteErrorCode.Ok || error == SqliteErrorCode.Busy || error == SqliteErrorCode.Locked)
+					{
+						bool retry = error != SqliteErrorCode.Ok;
+						if (callback != null && !callback(this, sourceName, destination, destinationName, pages, _lockContext.sqlite3_backup_remaining(backup), _lockContext.sqlite3_backup_pagecount(backup), retry))
+							break;
+
+						if (retry && retryMilliseconds > 0)
+							Thread.Sleep(retryMilliseconds);
+					}
+					else
+					{
+						throw new SqliteException(error, m_db);
+					}
+				}
+			}
+		}
+
+		public event StatementCompletedEventHandler StatementCompleted {
+			add
+			{
+				if (value == null)
+					throw new ArgumentNullException(nameof(value));
+
+				if (m_statementCompleted == null && m_db != null)
+					SetProfileCallback(s_profileCallback);
+
+				m_statementCompleted += value;
+			}
+			remove
+			{
+				if (value == null)
+					throw new ArgumentNullException(nameof(value));
+
+				m_statementCompleted -= value;
+				if (m_statementCompleted == null && m_db != null)
+					SetProfileCallback(null);
+			}
+		}
+
+		private void Dispose(bool disposing) {
+			try
+			{
+				if (disposing)
+				{
+					if (m_db != null)
+					{
+						while (m_transactions.Count > 0)
+							m_transactions.Pop().Dispose();
+						if (m_statementCompleted != null)
+							SetProfileCallback(null);
+						Utility.Dispose(ref m_db);
+						SetState(ConnectionState.Closed);
+					}
+				}
+				m_isDisposed = true;
+			}
+			finally
+			{
+				//not needed
+			}
+		}
+
+        public void Dispose() {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        internal SqliteTransaction CurrentTransaction {
+			get { return m_transactions.FirstOrDefault(); }
+		}
+
+		internal bool IsOnlyTransaction(SqliteTransaction transaction) {
+			return m_transactions.Count == 1 && m_transactions.Peek() == transaction;
+		}
+
+		internal void PopTransaction() {
+			m_transactions.Pop();
+		}
+
+		internal SqliteDatabaseHandle Handle {
+			get
+			{
+				VerifyNotDisposed();
+				return m_db;
+			}
+		}
+
+	    internal static byte[] ToUtf8(string value) {
+			return Encoding.UTF8.GetBytes(value);
+		}
+
+		internal static byte[] ToNullTerminatedUtf8(string value) {
+			var encoding = Encoding.UTF8;
+			int len = encoding.GetByteCount(value);
+			byte[] bytes = new byte[len + 1];
+			encoding.GetBytes(value, 0, value.Length, bytes, 0);
+			return bytes;
+		}
+
+		internal static string FromUtf8(IntPtr ptr) {
+			int length = 0;
+			unsafe
+			{
+				byte* p = (byte*) ptr.ToPointer();
+				while (*p++ != 0)
+					length++;
+			}
+
+			return FromUtf8(ptr, length);
+		}
+
+		internal static string FromUtf8(IntPtr ptr, int length) {
+			byte[] bytes = new byte[length];
+			Marshal.Copy(ptr, bytes, 0, length);
+			return Encoding.UTF8.GetString(bytes, 0, length);
+		}
+
+		private void SetProfileCallback(SqliteProfileCallback callback) {
+			if (callback != null && !m_handle.IsAllocated)
+				m_handle = GCHandle.Alloc(this);
+			else if (callback == null && m_handle.IsAllocated)
+				m_handle.Free();
+
+            _lockContext.sqlite3_profile(m_db, callback, m_handle.IsAllocated ? GCHandle.ToIntPtr(m_handle) : IntPtr.Zero);
+		}
+
+		private void SetState(ConnectionState newState) {
+			if (m_connectionState != newState)
+			{
+				var previousState = m_connectionState;
+				m_connectionState = newState;
+				OnStateChange(new StateChangeEventArgs(previousState, newState));
+			}
+		}
+
+        private void OnStateChange(StateChangeEventArgs e) {
+            var handler = StateChange;
+            if (handler != null) {
+                handler(this, e);
+            }
+        }
+
+#if XAMARIN_IOS
+		[ObjCRuntime.MonoPInvokeCallback(typeof(SqliteProfileCallback))]
+#endif
+        private static void ProfileCallback(IntPtr puserdata, IntPtr pSql, ulong nanoseconds) {
+			var handle = GCHandle.FromIntPtr(puserdata);
+			var connection = (SqliteConnection) handle.Target;
+			StatementCompletedEventHandler handler = connection.m_statementCompleted;
+			if (handler != null)
+				handler(connection, new StatementCompletedEventArgs(FromUtf8(pSql), TimeSpan.FromMilliseconds(nanoseconds / 1000000.0)));
+		}
+
+		private void VerifyNotDisposed() {
+			if (m_isDisposed)
+				throw new ObjectDisposedException(GetType().Name);
+		}
+
+		static readonly Regex s_vfsRegex = new Regex(@"^(?:\*(?'vfsName'.{0,16})\*)?(?'fileName'.*)$", RegexOptions.CultureInvariant);
+
+		SqliteDatabaseHandle m_db;
+		readonly Stack<SqliteTransaction> m_transactions;
+		static readonly SqliteProfileCallback s_profileCallback = ProfileCallback;
+		ConnectionState m_connectionState;
+		GCHandle m_handle;
+		bool m_isDisposed;
+		StatementCompletedEventHandler m_statementCompleted;
+		string m_dataSource;
+	}
+
+	/// <summary>
+	/// Raised between each backup step.
+	/// </summary>
+	/// <param name="source">The source database connection.</param>
+	/// <param name="sourceName">The source database name.</param>
+	/// <param name="destination">The destination database connection.</param>
+	/// <param name="destinationName">The destination database name.</param>
+	/// <param name="pages">The number of pages copied with each step.</param>
+	/// <param name="remainingPages">The number of pages remaining to be copied.</param>
+	/// <param name="totalPages">The total number of pages in the source database.</param>
+	/// <param name="retry">Set to true if the operation needs to be retried due to database locking issues; otherwise, set to false.</param>
+	/// <returns><c>true</c> to continue with the backup process; otherwise  <c>false</c> to halt the backup process, rolling back any changes that have been made so far.</returns>
+	public delegate bool SqliteBackupCallback(SqliteConnection source, string sourceName, SqliteConnection destination, string destinationName, int pages, int remainingPages, int totalPages, bool retry);
+}

@@ -1,8 +1,19 @@
 ﻿<Window x:Class="SampleApp.Wpf.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MainWindow" Height="350" Width="525" Loaded="Window_Loaded">
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:SampleApp.Wpf"
+        DataContext="{StaticResource MainViewModel}"
+        mc:Ignorable="d"
+        Title="Test Portable.Data.Sqlite" Height="350" Width="525" MinHeight="350" MinWidth="525">
     <Grid>
-        
+        <StackPanel Orientation="Vertical">
+            <Label Content="Database Path:"></Label>
+            <TextBox IsReadOnly="True" Text="{Binding DatabasePath,Mode=OneWay}"></TextBox>
+            <Button Content="Begin Tests!" Command="{Binding RunTestsCommand}"></Button>
+            <Label Content="Message:"></Label>
+            <TextBox IsReadOnly="True" Text="{Binding Message}" Margin="10,10,10,10" MinHeight="200" />
+        </StackPanel>
     </Grid>
 </Window>

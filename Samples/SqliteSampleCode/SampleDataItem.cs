@@ -1,7 +1,21 @@
+/*
+   Copyright 2014 Ellisnet - Jeremy Ellis (jeremy@ellisnet.com)
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 //ADDED TO SAMPLE TO DEMONSTRATE Portable.Data.Sqlite
 //(applies to the entire content of this file)
@@ -88,7 +102,7 @@ namespace SampleApp.Shared.SqliteSampleCode {
         //A little static method to check and see how many records are in the encrypted table,
         //  that I will use multiple times in the sample code.
         //  No need to include something like this in your implementations of EncryptedTableItem
-        public static long GetNumRecords(SqliteAdoConnection dbConn, string tableName) {
+        public static long GetNumRecords(SqliteConnection dbConn, string tableName) {
             string sql = "SELECT COUNT(*) FROM " + tableName + ";";
             using (var cmd = new SqliteCommand(sql, dbConn)) {
                 dbConn.SafeOpen();

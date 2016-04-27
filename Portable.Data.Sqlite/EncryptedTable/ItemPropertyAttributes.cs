@@ -15,10 +15,6 @@
 */
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Portable.Data.Sqlite {
 
@@ -63,8 +59,8 @@ namespace Portable.Data.Sqlite {
         /// </summary>
         /// <param name="value">The value to use as default</param>
         public ColumnDefaultValueAttribute(string value) {
-            if (value == null) throw new ArgumentNullException("value", "Column default value cannot be null.");
-            if (value.Contains("'")) throw new ArgumentException("Column default values cannot contain single quotes.", "value");
+            if (value == null) throw new ArgumentNullException(nameof(value), "Column default value cannot be null.");
+            if (value.Contains("'")) throw new ArgumentException("Column default values cannot contain single quotes.", nameof(value));
             _value = value;
         }
     }

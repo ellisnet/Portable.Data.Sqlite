@@ -6,7 +6,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 
-//ADDED TO SAMPLE TO DEMONSTRATE Portable.Data.Sqlite
 using Portable.Data.Sqlite;
 
 namespace SampleApp.Wpf {
@@ -17,44 +16,27 @@ namespace SampleApp.Wpf {
 
         #region ADDED TO SAMPLE TO DEMONSTRATE Portable.Data.Sqlite
 
-        string _appPassword = "myT3stPassword";
-        public string AppPassword {
-            get { return _appPassword; }
-            set { _appPassword = value; }
-        }
+        private string _appPassword = "myT3stPassword";
 
-        IObjectCryptEngine _appCryptEngine = null;
+        private IObjectCryptEngine _appCryptEngine;
         public IObjectCryptEngine AppCryptEngine {
-            get { return _appCryptEngine; }
-            set { _appCryptEngine = value; }
+            get {
+                _appCryptEngine = _appCryptEngine ?? new AesCryptEngine(_appPassword);
+                return _appCryptEngine;
+            }
         }
 
-        string _databaseName = "testdb.sqlite";
+        private string _databaseName = "testdb.sqlite";
         public string DatabaseName {
             get { return _databaseName; }
         }
 
-        string _databasePath = null;
+        private string _databasePath;
         public string DatabasePath {
             get {
-                if (_databasePath == null) {
-                    //There is probably a better place to store the database file, but for now just 
-                    //  storing it in application folder.
-                    _databasePath = _databaseName;
-                }
+                _databasePath = _databasePath ?? System.IO.Path.Combine(@"C:\temp", _databaseName);
                 return _databasePath;
             }
-        }
-
-        SQLitePCL.ISQLiteConnection _sqliteConnection;
-        public SQLitePCL.ISQLiteConnection SqliteConnection {
-            get {
-                if (_sqliteConnection == null) {
-                    _sqliteConnection = new SQLitePCL.SQLiteConnection(this.DatabasePath);
-                }
-                return _sqliteConnection;
-            }
-            set { _sqliteConnection = value; }
         }
 
         #endregion
