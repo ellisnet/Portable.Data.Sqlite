@@ -21,6 +21,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 
@@ -41,7 +42,7 @@ namespace Portable.Data.Sqlite {
             bool result = false;
 
             if (property != null && attributeType != null) {
-                result = property.GetCustomAttributes(attributeType, true).Count() > 0;
+                result = property.GetCustomAttributes(attributeType, true).Any();
             }
 
             return result;
@@ -89,7 +90,8 @@ namespace Portable.Data.Sqlite {
         /// The name of the SQLite table
         /// </summary>
         public string TableName {
-            get { return _tableName; }
+            // ReSharper disable InconsistentlySynchronizedField
+            get => _tableName;
             set {
                 if (value == null) throw new Exception("Table name cannot be null.");
                 if (value.Trim() == "") throw new Exception("Table name cannot be empty.");
@@ -102,7 +104,7 @@ namespace Portable.Data.Sqlite {
                         error += "table names must start with a letter.";
                         break;
                     }
-                    foreach (char letter in tempTableName.ToLower().ToCharArray()) {
+                    foreach (char letter in tempTableName.ToLower()) {
                         if (("abcdefghijklmnopqrstuvwxyz0123456789_").IndexOf(letter) < 0) {
                             error += "table names may only contain letters, numbers and underscores.";
                             break;
@@ -112,22 +114,27 @@ namespace Portable.Data.Sqlite {
                 } while (false);
                 if (error != "") throw new Exception("The specified table name is invalid - " + error);
             }
+            // ReSharper restore InconsistentlySynchronizedField
         }
 
         /// <summary>
         /// The SQLite database connection to be used when interacting with the table
         /// </summary>
         public SqliteConnection DbConnection {
-            get { return _dbConnection; }
-            set { _dbConnection = value; }
+            // ReSharper disable InconsistentlySynchronizedField
+            get => _dbConnection;
+            set => _dbConnection = value;
+            // ReSharper restore InconsistentlySynchronizedField
         }
 
         /// <summary>
         /// An in-memory cache of objects/table records that are currently being manipulated
         /// </summary>
         public List<T> TempItems {
-            get { return _tempItems; }
-            set { _tempItems = value ?? new List<T>(); }
+            // ReSharper disable InconsistentlySynchronizedField
+            get => _tempItems;
+            set => _tempItems = (value ?? new List<T>());
+            // ReSharper restore InconsistentlySynchronizedField
         }
 
         /// <summary>
@@ -210,8 +217,7 @@ namespace Portable.Data.Sqlite {
         /// <param name="checkDbTable">Check to make sure the associated SQLite table exists, and create if necessary</param>
         /// <param name="tableName">Specify a desired name of the SQLite table, instead of using a name derived from the object type</param>
         public EncryptedTable(SqliteConnection dbConnection, bool checkDbTable = true, string tableName = null)
-            : this(((dbConnection == null) ? null : dbConnection._cryptEngine), 
-            dbConnection, checkDbTable, tableName) {
+            : this(dbConnection?._cryptEngine, dbConnection, checkDbTable, tableName) {
         }
 
         #endregion
@@ -219,9 +225,8 @@ namespace Portable.Data.Sqlite {
         /// <summary>
         /// A dictionary of SQLite table columns in the table associated with the encrypted table object
         /// </summary>
-        public Dictionary<string, TableColumn> TableColumns {
-            get { return _tableColumns; }
-        }
+        // ReSharper disable once InconsistentlySynchronizedField
+        public Dictionary<string, TableColumn> TableColumns => _tableColumns;
 
         private void _checkTableColumns() {
             lock (setupLock) {
@@ -271,11 +276,12 @@ namespace Portable.Data.Sqlite {
                                 throw new Exception(String.Format("Problem with column name '{0}' - {1}", tempName, checkResult.Item2 ?? "Unknown"));
                             columnName = tempName;
 
-                            if ((new string[] { "id", "encrypted_object", "encrypted_searchable" }).Contains(columnName.ToLower()))
+                            if ((new [] { "id", "encrypted_object", "encrypted_searchable" }).Contains(columnName.ToLower()))
                                 throw new Exception(String.Format("'{0}' is a reserved column name and cannot be re-used.", columnName));
 
                             string netType = prop.PropertyType.FullName;
                             SqliteColumnType colType = SqliteConversion.TypeToColumnType(Type.GetType(netType));
+                            // ReSharper disable once RedundantAssignment
                             string dbType = "";
                             string defaultValue = null;
                             if (prop.HasAttribute(typeof(ColumnDefaultValueAttribute))) {
@@ -284,15 +290,13 @@ namespace Portable.Data.Sqlite {
                             switch (colType) {
                                 case SqliteColumnType.Integer:
                                     dbType = "INTEGER";
-                                    Int64 testInt;
-                                    if (defaultValue != null && !Int64.TryParse(defaultValue, out testInt))
+                                    if (defaultValue != null && !Int64.TryParse(defaultValue, out _))
                                         throw new Exception(String.Format("The default value for column [{0}] ('{1}') cannot be converted to SQLite type {2}",
                                             columnName, defaultValue, dbType));
                                     break;
                                 case SqliteColumnType.Double:
                                     dbType = "REAL";
-                                    double testDouble;
-                                    if (defaultValue != null && !Double.TryParse(defaultValue, out testDouble))
+                                    if (defaultValue != null && !Double.TryParse(defaultValue, out _))
                                         throw new Exception(String.Format("The default value for column [{0}] ('{1}') cannot be converted to SQLite type {2}",
                                             columnName, defaultValue, dbType));
                                     break;
@@ -301,8 +305,7 @@ namespace Portable.Data.Sqlite {
                                     break;
                                 case SqliteColumnType.ConvDateTime:
                                     dbType = "DATETIME";
-                                    DateTime testDate;
-                                    if (defaultValue != null && !DateTime.TryParse(defaultValue, out testDate))
+                                    if (defaultValue != null && !DateTime.TryParse(defaultValue, out _))
                                         throw new Exception(String.Format("The default value for column [{0}] ('{1}') cannot be converted to SQLite type {2}",
                                             columnName, defaultValue, dbType));
                                     break;
@@ -355,39 +358,96 @@ namespace Portable.Data.Sqlite {
                 if (_dbConnection.State == ConnectionState.Closed) _dbConnection.Open();
                 cmd.ExecuteNonQuery();
             }
-            sql = String.Format("SELECT * FROM [{0}] LIMIT 1;", _tableName);
-            using (var cmd = new SqliteCommand(sql, _dbConnection)) {
-                if (_dbConnection.State == ConnectionState.Closed) _dbConnection.Open();
-                List<string> dbColumns;
-                using (var dr = new SqliteDataReader(cmd)) {
-                    bool recordFound = dr.Read();
-                    dbColumns = dr.Columns;
-                }
-                foreach (TableColumn column in _tableColumns.Values.OrderBy(c => c.ColumnOrder)) {
-                    if (dbColumns.Where(c => (c ?? "").ToLower() == column.ColumnName.ToLower()).Count() == 0) {
-                        //must add column
-                        string defaultValue = "";
-                        if (column.DefaultValue != null) {
-                            if (column.DbType == "INTEGER" || column.DbType == "REAL") {
-                                defaultValue = " DEFAULT " + column.DefaultValue;
-                            }
-                            else {
-                                defaultValue = " DEFAULT '" + column.DefaultValue + "'";
-                            }
+
+            List<string> dbColumns = GetTableColumnNames(_tableName);
+            foreach (TableColumn column in _tableColumns.Values.OrderBy(c => c.ColumnOrder))
+            {
+                if (dbColumns.All(c => (c ?? "").ToLower() != column.ColumnName.ToLower()))
+                {
+                    //must add column
+                    string defaultValue = "";
+                    if (column.DefaultValue != null)
+                    {
+                        if (column.DbType == "INTEGER" || column.DbType == "REAL")
+                        {
+                            defaultValue = " DEFAULT " + column.DefaultValue;
                         }
-                        sql = String.Format("ALTER TABLE [{0}] ADD COLUMN [{1}] {2}{3}{4};",
-                            _tableName,
-                            column.ColumnName,
-                            column.DbType,
-                            (column.IsNotNull ? " NOT NULL" : ""),
-                            defaultValue);
-                        cmd.CommandText = sql;
+                        else
+                        {
+                            defaultValue = " DEFAULT '" + column.DefaultValue + "'";
+                        }
+                    }
+                    sql =
+                        $"ALTER TABLE [{_tableName}] ADD COLUMN [{column.ColumnName}] {column.DbType}{(column.IsNotNull ? " NOT NULL" : "")}{defaultValue};";
+                    using (var cmd = new SqliteCommand(sql, _dbConnection))
+                    {
                         if (_dbConnection.State == ConnectionState.Closed) _dbConnection.Open();
                         cmd.ExecuteNonQuery();
                     }
                 }
             }
+
+            //OLD: This code does not properly check if columns are missing or not because
+            // there are no columns on the SqliteDataReader (at least for a new table) -
+            // even if the table was just created to have columns.
+            //sql = String.Format("SELECT * FROM [{0}] LIMIT 1;", _tableName);
+            //using (var cmd = new SqliteCommand(sql, _dbConnection)) {
+            //    if (_dbConnection.State == ConnectionState.Closed) _dbConnection.Open();
+            //    List<string> dbColumns;
+            //    using (var dr = new SqliteDataReader(cmd)) {
+            //        // ReSharper disable once UnusedVariable
+            //        bool recordFound = dr.Read();
+            //        dbColumns = dr.Columns;
+            //    }
+            //    foreach (TableColumn column in _tableColumns.Values.OrderBy(c => c.ColumnOrder)) {
+            //        if (dbColumns.All(c => (c ?? "").ToLower() != column.ColumnName.ToLower())) {
+            //            //must add column
+            //            string defaultValue = "";
+            //            if (column.DefaultValue != null) {
+            //                if (column.DbType == "INTEGER" || column.DbType == "REAL") {
+            //                    defaultValue = " DEFAULT " + column.DefaultValue;
+            //                }
+            //                else {
+            //                    defaultValue = " DEFAULT '" + column.DefaultValue + "'";
+            //                }
+            //            }
+            //            sql =
+            //                $"ALTER TABLE [{_tableName}] ADD COLUMN [{column.ColumnName}] {column.DbType}{(column.IsNotNull ? " NOT NULL" : "")}{defaultValue};";
+            //            cmd.CommandText = sql;
+            //            if (_dbConnection.State == ConnectionState.Closed) _dbConnection.Open();
+            //            cmd.ExecuteNonQuery();
+            //        }
+            //    }
+            //}
+
             _dbTableChecked = true;
+        }
+
+        private List<string> GetTableColumnNames(string tableName)
+        {
+            var result = new List<string>();
+
+            if (_dbConnection == null) throw new Exception("No database connection specified.");
+            tableName = tableName?.Trim() ?? throw new ArgumentNullException(nameof(tableName));
+            if (tableName == "") { throw new ArgumentOutOfRangeException(nameof(tableName));}
+
+            string sql = $"pragma table_info({tableName});";
+            // ReSharper disable InconsistentlySynchronizedField
+            using (var cmd = new SqliteCommand(sql, _dbConnection))
+            {
+                if (_dbConnection.State == ConnectionState.Closed) _dbConnection.Open();
+                using (var dr = new SqliteDataReader(cmd))
+                {
+                    while (dr.Read())
+                    {
+                        string columnName = dr.GetString("name");
+                        if (!String.IsNullOrWhiteSpace(columnName)) { result.Add(columnName);}
+                    }
+                }
+            }
+            // ReSharper restore InconsistentlySynchronizedField
+
+            return result;
         }
 
         private int _buildFullTableIndex() {
@@ -406,7 +466,7 @@ namespace Portable.Data.Sqlite {
             var notEncryptedColumnProps = new Dictionary<string, string>();
 
             foreach (TableColumn column in _tableColumns.Values.Where(c => c.PropertyName != null)) {
-                if (_notEncryptedPropertyNames.Where(p => p.ToLower() == column.PropertyName.ToLower()).Count() > 0) {
+                if (_notEncryptedPropertyNames.Any(p => p.ToLower() == column.PropertyName.ToLower())) {
                     notEncryptedColumnProps.Add(column.ColumnName, column.PropertyName);
                     sql += ", [" + column.ColumnName + "]";
                 }
@@ -462,30 +522,32 @@ namespace Portable.Data.Sqlite {
             return result;
         }
 
-        private Object _getPropertyValue(T item, string propertyName) {
-            Object result = null;
+        private Object _getPropertyValue(T item, string propertyName)
+        {
+            if (item == null) { throw new ArgumentNullException(nameof(item));}
+            if (propertyName == null) { throw new ArgumentNullException(nameof(propertyName));}
+            if (propertyName.Trim() == "") { throw new ArgumentOutOfRangeException(nameof(propertyName));}
 
-            if (item == null) throw new ArgumentNullException("item");
-            if (propertyName == null) throw new ArgumentNullException("propertyName");
-            if (propertyName.Trim() == "") throw new ArgumentOutOfRangeException("propertyName");
-
-            result = item.GetType().GetProperties()
-                .Where(p => p.Name.ToLower() == propertyName.ToLower()).Single()
+            return item.GetType().GetProperties()
+                .Single(p => p.Name.ToLower() == propertyName.ToLower())
                 .GetValue(item);
-
-            return result;
         }
 
         private long _writeNewItem(T item, bool skipUpdateIndex = false) {
+            // ReSharper disable once RedundantAssignment
             Int64 result = -1;
 
-            if (item == null) throw new ArgumentNullException("item");
+            if (item == null) throw new ArgumentNullException(nameof(item));
             if (_cryptEngine == null) throw new Exception(NO_CRYPT_ENGINE);
             if (_dbConnection == null) throw new Exception(NO_DB_CONNECTION);
 
             if (!_dbTableChecked) _checkDbTable();
 
-            (item as EncryptedTableItem).CryptEngine = (item as EncryptedTableItem).CryptEngine ?? _cryptEngine;
+            if (item is EncryptedTableItem)
+            {
+                var encryptedItem = (item as EncryptedTableItem);
+                encryptedItem.CryptEngine = encryptedItem.CryptEngine ?? _cryptEngine;
+            }
             using (var cmd = new SqliteCommand(_dbConnection)) {
                 string columnSql = "";
                 string valueSql = "";
@@ -495,9 +557,8 @@ namespace Portable.Data.Sqlite {
                 paramValues.Add("@Encrypted_Searchable", item.EncryptSearchable());
                 paramValues.Add("@Encrypted_Object", item.Encrypt());
 
-                TableColumn column;
                 foreach (string property in _notEncryptedPropertyNames) {
-                    column = _tableColumns.Values.Where(c => c.PropertyName == property).Single();
+                    TableColumn column = _tableColumns.Values.Single(c => c.PropertyName == property);
                     columnSql += ", [" + column.ColumnName +"]";
                     valueSql += ", " + "@" + column.ColumnName;
                     paramValues.Add("@" + column.ColumnName, _getPropertyValue(item, property) ?? column.DefaultValue);
@@ -531,6 +592,7 @@ namespace Portable.Data.Sqlite {
         }
 
         private bool _updateItem(T item, bool noCheck = false, bool allowWriteNew = false, bool writeMissingAsNew = false, bool skipUpdateIndex = false) {
+            // ReSharper disable once RedundantAssignment
             bool result = false;
 
             if (item == null) throw new ArgumentNullException(nameof(item));
@@ -547,6 +609,7 @@ namespace Portable.Data.Sqlite {
             }
             else {
                 bool recordExists = noCheck;
+                // ReSharper disable once RedundantAssignment
                 string sql = "";
                 if (!recordExists) {
                     sql = String.Format("SELECT COUNT(*) FROM [{0}] WHERE [Id] = @ID;", _tableName);
@@ -599,10 +662,12 @@ namespace Portable.Data.Sqlite {
                 }
             }
 
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
             return result;
         }
 
         private bool _deleteItem(T item, bool noCheck = true, bool skipUpdateIndex = false) {
+            // ReSharper disable once RedundantAssignment
             bool result = false;
 
             if (item == null) throw new ArgumentNullException(nameof(item));
@@ -615,6 +680,7 @@ namespace Portable.Data.Sqlite {
             }
             else {
                 bool recordExists = noCheck;
+                // ReSharper disable once RedundantAssignment
                 string sql = "";
                 if (!recordExists) {
                     sql = String.Format("SELECT COUNT(*) FROM [{0}] WHERE [Id] = @ID;", _tableName);
@@ -643,25 +709,25 @@ namespace Portable.Data.Sqlite {
                     }
                 }
             }
+            // ReSharper disable once ConditionIsAlwaysTrueOrFalse
             return result;
         }
 
         private void _checkTableSearch(TableSearch search) {
             if (search == null) throw new NullReferenceException("The specified search is null.");
             if (search.MatchItems.Count > 0) {
-                SearchItemPropertyType propertyType;
-                string columnName;
                 foreach (TableSearchItem item in search.MatchItems) {
-                    propertyType = SearchItemPropertyType.Unknown;
-                    columnName = "";
+                    SearchItemPropertyType propertyType = SearchItemPropertyType.Unknown;
+                    string columnName = "";
 
-                    if (_notEncryptedPropertyNames.Where(p => p.ToLower() == item.PropertyName.ToLower()).Count() > 0) {
-                        item.FixedPropertyName = _notEncryptedPropertyNames.Where(p => p.ToLower() == item.PropertyName.ToLower()).First();
+                    if (_notEncryptedPropertyNames.Any(p => p.ToLower() == item.PropertyName.ToLower())) {
+                        item.FixedPropertyName = _notEncryptedPropertyNames.First(p => p.ToLower() == item.PropertyName.ToLower());
                         propertyType = SearchItemPropertyType.NotEncrypted;
-                        columnName = _tableColumns.Values.Where(c => c.PropertyName != null && c.PropertyName == item.FixedPropertyName).First().ColumnName;
+                        // ReSharper disable once InconsistentlySynchronizedField
+                        columnName = _tableColumns.Values.First(c => c.PropertyName != null && c.PropertyName == item.FixedPropertyName).ColumnName;
                     }
-                    else if (_searchablePropertyNames.Where(p => p.ToLower() == item.PropertyName.ToLower()).Count() > 0) {
-                        item.FixedPropertyName = _searchablePropertyNames.Where(p => p.ToLower() == item.PropertyName.ToLower()).First();
+                    else if (_searchablePropertyNames.Any(p => p.ToLower() == item.PropertyName.ToLower())) {
+                        item.FixedPropertyName = _searchablePropertyNames.First(p => p.ToLower() == item.PropertyName.ToLower());
                         propertyType = SearchItemPropertyType.Searchable;
                     }
 
@@ -682,13 +748,13 @@ namespace Portable.Data.Sqlite {
 
             if (search == null) throw new NullReferenceException("The specified search is null.");
 
-            foreach (TableColumn column in _tableColumns.Values.Where(c => !(new string[] { "id", "encrypted_object", "encrypted_searchable" }).Contains(c.ColumnName.ToLower()))) {
+            foreach (TableColumn column in _tableColumns.Values.Where(c => !(new [] { "id", "encrypted_object", "encrypted_searchable" }).Contains(c.ColumnName.ToLower()))) {
                 result += ", [" + column.ColumnName + "]";
             }
 
             result += ", [Encrypted_Searchable] FROM [" + _tableName + "]";
 
-            if (search.MatchItems.Where(m => m.PropertyType == SearchItemPropertyType.NotEncrypted).Count() > 0) {
+            if (search.MatchItems.Any(m => m.PropertyType == SearchItemPropertyType.NotEncrypted)) {
                 result += " WHERE";
                 foreach (TableSearchItem searchItem in search.MatchItems.Where(m => m.PropertyType == SearchItemPropertyType.NotEncrypted)) {
                     result += andOr;
@@ -749,12 +815,12 @@ namespace Portable.Data.Sqlite {
         }
 
         private bool _indexItemMatch(KeyValuePair<long, Dictionary<string, string>> indexItem, TableSearch search) {
-            bool result = false;
+            bool result;
 
             //if (indexItem == null) throw new ArgumentNullException("indexItem");
-            if (search == null) throw new ArgumentNullException("search");
-            if (indexItem.Value == null) throw new ArgumentException("Missing indexItem Value.", "indexItem");
-            if (search.MatchItems == null) throw new ArgumentException("Missing search MatchItems", "search");
+            if (search == null) throw new ArgumentNullException(nameof(search));
+            if (indexItem.Value == null) throw new ArgumentException("Missing indexItem Value.", nameof(indexItem));
+            if (search.MatchItems == null) throw new ArgumentException("Missing search MatchItems", nameof(search));
 
             if (search.MatchItems.Count == 0) {
                 result = true;
@@ -762,7 +828,6 @@ namespace Portable.Data.Sqlite {
             else {
                 var itemValues = indexItem.Value;
                 bool itemMatch;
-                bool foundMatch;
                 string matchValue;
                 string TmatchValue;
                 string LmatchValue;
@@ -781,7 +846,7 @@ namespace Portable.Data.Sqlite {
                 }
 
                 foreach (var matchItem in search.MatchItems) {
-                    foundMatch = false;
+                    bool foundMatch;
                     matchValue = matchItem.Value;
                     TmatchValue = matchItem.Value.Trim();
                     LmatchValue = matchItem.Value.ToLower();
@@ -793,21 +858,21 @@ namespace Portable.Data.Sqlite {
                             if (matchItem.CaseSensitivity == SearchItemCaseSensitivity.CaseInsensitive) {
                                 if (matchItem.Trimming == SearchItemTrimming.AutoTrim) {
                                     foundMatch =
-                                        (itemValues.Where(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.Trim().ToLower() == TLmatchValue).Count() > 0);
+                                        (itemValues.Any(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.Trim().ToLower() == TLmatchValue));
                                 }
                                 else {
                                     foundMatch =
-                                        (itemValues.Where(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.ToLower() == LmatchValue).Count() > 0);
+                                        (itemValues.Any(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.ToLower() == LmatchValue));
                                 }
                             }
                             else {
                                 if (matchItem.Trimming == SearchItemTrimming.AutoTrim) {
                                     foundMatch =
-                                        (itemValues.Where(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.Trim() == TmatchValue).Count() > 0);
+                                        (itemValues.Any(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.Trim() == TmatchValue));
                                 }
                                 else {
                                     foundMatch =
-                                        (itemValues.Where(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value == matchValue).Count() > 0);
+                                        (itemValues.Any(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value == matchValue));
                                 }
                             }
                             #endregion
@@ -817,21 +882,21 @@ namespace Portable.Data.Sqlite {
                             if (matchItem.CaseSensitivity == SearchItemCaseSensitivity.CaseInsensitive) {
                                 if (matchItem.Trimming == SearchItemTrimming.AutoTrim) {
                                     foundMatch =
-                                        (itemValues.Where(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.Trim().ToLower() != TLmatchValue).Count() > 0);
+                                        (itemValues.Any(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.Trim().ToLower() != TLmatchValue));
                                 }
                                 else {
                                     foundMatch =
-                                        (itemValues.Where(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.ToLower() != LmatchValue).Count() > 0);
+                                        (itemValues.Any(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.ToLower() != LmatchValue));
                                 }
                             }
                             else {
                                 if (matchItem.Trimming == SearchItemTrimming.AutoTrim) {
                                     foundMatch =
-                                        (itemValues.Where(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.Trim() != TmatchValue).Count() > 0);
+                                        (itemValues.Any(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.Trim() != TmatchValue));
                                 }
                                 else {
                                     foundMatch =
-                                        (itemValues.Where(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value != matchValue).Count() > 0);
+                                        (itemValues.Any(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value != matchValue));
                                 }
                             }
                             #endregion
@@ -841,21 +906,21 @@ namespace Portable.Data.Sqlite {
                             if (matchItem.CaseSensitivity == SearchItemCaseSensitivity.CaseInsensitive) {
                                 if (matchItem.Trimming == SearchItemTrimming.AutoTrim) {
                                     foundMatch =
-                                        (itemValues.Where(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.ToLower().Contains(TLmatchValue)).Count() > 0);
+                                        (itemValues.Any(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.ToLower().Contains(TLmatchValue)));
                                 }
                                 else {
                                     foundMatch =
-                                        (itemValues.Where(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.ToLower().Contains(LmatchValue)).Count() > 0);
+                                        (itemValues.Any(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.ToLower().Contains(LmatchValue)));
                                 }
                             }
                             else {
                                 if (matchItem.Trimming == SearchItemTrimming.AutoTrim) {
                                     foundMatch =
-                                        (itemValues.Where(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.Contains(TmatchValue)).Count() > 0);
+                                        (itemValues.Any(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.Contains(TmatchValue)));
                                 }
                                 else {
                                     foundMatch =
-                                        (itemValues.Where(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.Contains(matchValue)).Count() > 0);
+                                        (itemValues.Any(v => v.Key == matchItem.FixedPropertyName && v.Value != null && v.Value.Contains(matchValue)));
                                 }
                             }
                             #endregion
@@ -865,32 +930,32 @@ namespace Portable.Data.Sqlite {
                             if (matchItem.CaseSensitivity == SearchItemCaseSensitivity.CaseInsensitive) {
                                 if (matchItem.Trimming == SearchItemTrimming.AutoTrim) {
                                     foundMatch =
-                                        (itemValues.Where(v => v.Key == matchItem.FixedPropertyName && v.Value != null && (!v.Value.ToLower().Contains(TLmatchValue))).Count() > 0);
+                                        (itemValues.Any(v => v.Key == matchItem.FixedPropertyName && v.Value != null && (!v.Value.ToLower().Contains(TLmatchValue))));
                                 }
                                 else {
                                     foundMatch =
-                                        (itemValues.Where(v => v.Key == matchItem.FixedPropertyName && v.Value != null && (!v.Value.ToLower().Contains(LmatchValue))).Count() > 0);
+                                        (itemValues.Any(v => v.Key == matchItem.FixedPropertyName && v.Value != null && (!v.Value.ToLower().Contains(LmatchValue))));
                                 }
                             }
                             else {
                                 if (matchItem.Trimming == SearchItemTrimming.AutoTrim) {
                                     foundMatch =
-                                        (itemValues.Where(v => v.Key == matchItem.FixedPropertyName && v.Value != null && (!v.Value.Contains(TmatchValue))).Count() > 0);
+                                        (itemValues.Any(v => v.Key == matchItem.FixedPropertyName && v.Value != null && (!v.Value.Contains(TmatchValue))));
                                 }
                                 else {
                                     foundMatch =
-                                        (itemValues.Where(v => v.Key == matchItem.FixedPropertyName && v.Value != null && (!v.Value.Contains(matchValue))).Count() > 0);
+                                        (itemValues.Any(v => v.Key == matchItem.FixedPropertyName && v.Value != null && (!v.Value.Contains(matchValue))));
                                 }
                             }
                             #endregion
                             break;
                         case SearchItemMatchType.IsNull:
                             foundMatch =
-                                (itemValues.Where(v => v.Key == matchItem.FixedPropertyName && v.Value == null).Count() > 0);
+                                (itemValues.Any(v => v.Key == matchItem.FixedPropertyName && v.Value == null));
                             break;
                         case SearchItemMatchType.IsNotNull:
                             foundMatch =
-                                (itemValues.Where(v => v.Key == matchItem.FixedPropertyName && v.Value != null).Count() > 0);
+                                (itemValues.Any(v => v.Key == matchItem.FixedPropertyName && v.Value != null));
                             break;
                         default:
                             throw new NotImplementedException();
@@ -917,7 +982,9 @@ namespace Portable.Data.Sqlite {
         /// </summary>
         /// <param name="dbConnection">The SQLite database connection to be used when interacting with the table</param>
         public void CheckDbTable(SqliteConnection dbConnection = null) {
+            // ReSharper disable InconsistentlySynchronizedField
             _dbConnection = dbConnection ?? _dbConnection;
+            // ReSharper restore InconsistentlySynchronizedField
             lock (dbLock) {
                 _checkDbTable();
             }
@@ -1007,7 +1074,8 @@ namespace Portable.Data.Sqlite {
         public bool UpdateTableItem(long itemId, bool noCheckForExisting = false, bool allowWriteNew = false, bool writeMissingAsNew = false) {
             lock (dbLock) {
                 bool result = true;
-                if (this.TempItems.Where(i => i.Id == itemId).Count() == 0) {
+                if (this.TempItems.All(i => i.Id != itemId)) {
+                    // ReSharper disable once RedundantAssignment
                     result = false;
                     throw new Exception("Unable to find item with ID: " + itemId.ToString());
                 }
@@ -1041,7 +1109,8 @@ namespace Portable.Data.Sqlite {
         public bool DeleteTableItem(long itemId, bool noCheckForExisting = true) {
             lock (dbLock) {
                 bool result = true;
-                if (this.TempItems.Where(i => i.Id == itemId).Count() == 0) {
+                if (this.TempItems.All(i => i.Id != itemId)) {
+                    // ReSharper disable once RedundantAssignment
                     result = false;
                     throw new Exception("Unable to find item with ID: " + itemId.ToString());
                 }
@@ -1065,11 +1134,14 @@ namespace Portable.Data.Sqlite {
             int result = 0;
 
             if (_cryptEngine == null) throw new Exception(NO_CRYPT_ENGINE);
+            // ReSharper disable InconsistentlySynchronizedField
             _dbConnection = dbConnection ?? _dbConnection;
+            // ReSharper restore InconsistentlySynchronizedField
             if (_dbConnection == null) throw new Exception(NO_DB_CONNECTION);
 
             lock (dbLock) {
                 if (!_dbTableChecked) _checkDbTable();
+                // ReSharper disable once RedundantArgumentDefaultValue
                 _checkFullTableIndex(false);
 
                 IEnumerable<T> itemsToWrite;
@@ -1158,7 +1230,7 @@ namespace Portable.Data.Sqlite {
         /// <returns>If true, the item(s) was successfully written</returns>
         public bool WriteItemToTable(long itemId, bool allowWriteNew = true) {
             lock (dbLock) {
-                bool result = false;
+                bool result;
 
                 if (allowWriteNew && itemId == -1) {
                     foreach (T item in this.TempItems.Where(i => i.Id == itemId)) {
@@ -1200,9 +1272,9 @@ namespace Portable.Data.Sqlite {
         /// <param name="immediateWriteToTable">If true, the associated record is immediately deleted from the table</param>
         /// <returns>If true, the item was successfully marked or deleted</returns>
         public bool RemoveItem(long itemId, bool immediateWriteToTable = false) {
-            bool result = false;
+            bool result;
 
-            int numItems = this.TempItems.Where(i => i.Id == itemId).Count();
+            int numItems = this.TempItems.Count(i => i.Id == itemId);
             if (numItems == 0) {
                 throw new Exception("Unable to find item with ID: " + itemId.ToString());
             }
@@ -1210,14 +1282,14 @@ namespace Portable.Data.Sqlite {
                 throw new Exception("Multiple items were found with ID: " + itemId.ToString());
             }
             else {
-                T item = this.TempItems.Where(i => i.Id == itemId).Single();
+                T item = this.TempItems.Single(i => i.Id == itemId);
                 item.SyncStatus = TableItemStatus.ToBeDeleted;
 
                 result = true;
 
                 if (immediateWriteToTable) {
                     lock (dbLock) {
-                        result = result & _deleteItem(item);
+                        result = _deleteItem(item);
                     }
                     if (result) this.TempItems.Remove(item);
                 }
@@ -1234,6 +1306,7 @@ namespace Portable.Data.Sqlite {
         /// <param name="bypassFullTableIndex">If true, do not use the full table index (if it exists) i.e. check the database directly</param>
         /// <returns>An index of the matching records</returns>
         public TableIndex GetTableItemIndex(TableSearch search, bool writeChangesFirst = true, bool bypassFullTableIndex = false) {
+            // ReSharper disable once RedundantAssignment
             TableIndex result = null;
 
             _checkTableSearch(search);
@@ -1244,7 +1317,7 @@ namespace Portable.Data.Sqlite {
 
             #region Getting the initial index to be searched
 
-            if (search.MatchItems.Where(m => m.PropertyType == SearchItemPropertyType.NotEncrypted).Count() == 0) {
+            if (search.MatchItems.All(m => m.PropertyType != SearchItemPropertyType.NotEncrypted)) {
                 //initial index will be full table index
                 if (bypassFullTableIndex || (!this.CheckFullTableIndex())) this.BuildFullTableIndex();
                 initialIndex = _fullTableIndex.Clone();
@@ -1258,8 +1331,9 @@ namespace Portable.Data.Sqlite {
 
                 var notEncryptedColumnProps = new Dictionary<string, string>();
 
+                // ReSharper disable once InconsistentlySynchronizedField
                 foreach (TableColumn column in _tableColumns.Values.Where(c => c.PropertyName != null)) {
-                    if (_notEncryptedPropertyNames.Where(p => p.ToLower() == column.PropertyName.ToLower()).Count() > 0) {
+                    if (_notEncryptedPropertyNames.Any(p => p.ToLower() == column.PropertyName.ToLower())) {
                         notEncryptedColumnProps.Add(column.ColumnName, column.PropertyName);
                     }
                 }
@@ -1388,6 +1462,7 @@ namespace Portable.Data.Sqlite {
                 }
             }
             else {
+                // ReSharper disable once RedundantArgumentDefaultValue
                 itemsToGet = this.GetTableItemIndex(search, false, false);
             }
 
@@ -1403,11 +1478,12 @@ namespace Portable.Data.Sqlite {
         /// </summary>
         public void Dispose() {
             if (_writeChangesOnDispose && _tempItems != null) {
-                if (_tempItems.Where(i => i.SyncStatus == TableItemStatus.New || i.SyncStatus == TableItemStatus.Modified ||
-                    i.SyncStatus == TableItemStatus.ToBeDeleted).Count() > 0) 
+                if (_tempItems.Any(i => i.SyncStatus == TableItemStatus.New || i.SyncStatus == TableItemStatus.Modified ||
+                    i.SyncStatus == TableItemStatus.ToBeDeleted)) 
                 {
                     if (_dbConnection == null)
                         throw new Exception("This object is set to write changes when being disposed, and there are pending object changes - but no database connection.");
+                    // ReSharper disable once RedundantArgumentDefaultValue
                     this.WriteChangesAndFlush(false);
                 }
             }

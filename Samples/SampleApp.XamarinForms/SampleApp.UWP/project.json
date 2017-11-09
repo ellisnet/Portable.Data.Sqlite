@@ -2,6 +2,7 @@
   "dependencies": {
     "Microsoft.NETCore.UniversalWindowsPlatform": "5.4.1",
     "Newtonsoft.Json": "8.0.3",
+    "sqlite": "3.13.0",
     "Xamarin.Forms": "2.4.0.38779"
   },
   "frameworks": {

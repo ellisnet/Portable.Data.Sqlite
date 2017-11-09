@@ -26,10 +26,6 @@ namespace SampleApp.Droid
 		
 		public static void UpdateIdValues()
 		{
-			global::Portable.Data.CryptEngine.Resource.String.ApplicationName = global::SampleApp.Droid.Resource.String.ApplicationName;
-			global::Portable.Data.CryptEngine.Resource.String.Hello = global::SampleApp.Droid.Resource.String.Hello;
-			global::Portable.Data.Resource.String.ApplicationName = global::SampleApp.Droid.Resource.String.ApplicationName;
-			global::Portable.Data.Resource.String.Hello = global::SampleApp.Droid.Resource.String.Hello;
 			global::Xamarin.Forms.Platform.Android.Resource.Attribute.actionBarSize = global::SampleApp.Droid.Resource.Attribute.actionBarSize;
 		}
 		
@@ -3628,12 +3624,6 @@ namespace SampleApp.Droid
 		
 		public partial class String
 		{
-			
-			// aapt resource value: 0x7f09003f
-			public const int ApplicationName = 2131296319;
-			
-			// aapt resource value: 0x7f09003e
-			public const int Hello = 2131296318;
 			
 			// aapt resource value: 0x7f090015
 			public const int abc_action_bar_home_description = 2131296277;
