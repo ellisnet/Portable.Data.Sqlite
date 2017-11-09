@@ -13,9 +13,12 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 
-namespace SampleApp.UWP {
-    public sealed partial class MainPage {
-        public MainPage() {
+namespace SampleApp.UWP
+{
+    public sealed partial class MainPage
+    {
+        public MainPage()
+        {
             this.InitializeComponent();
 
             LoadApplication(new SampleApp.App());
