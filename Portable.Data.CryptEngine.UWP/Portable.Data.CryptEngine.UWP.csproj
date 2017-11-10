@@ -112,19 +112,18 @@
     <EmbeddedResource Include="Properties\Portable.Data.CryptEngine.UWP.rd.xml" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="Portable.Data.Sqlite, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\Release\Portable.Data.Sqlite\UWP\Portable.Data.Sqlite.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
     <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform">
       <Version>5.4.1</Version>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json">
       <Version>8.0.3</Version>
     </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Portable.Data.Sqlite.UWP\Portable.Data.Sqlite.UWP.csproj">
+      <Project>{7c4eea14-0fb9-4aee-997e-9281ae524b62}</Project>
+      <Name>Portable.Data.Sqlite.UWP</Name>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
