@@ -1,3 +1,23 @@
+Please read this important note!
+================================
+
+This library - *Portable.Data.Sqlite* - is being replaced by my **SimpleAdo.Sqlite** library ([GitHub Repository](https://github.com/ellisnet/SimpleAdo) - [NuGet Package](https://www.nuget.org/packages/SimpleAdo.Sqlite/)).
+
+The **good** news:
+
+  * The new library - **SimpleAdo.Sqlite** - contains pretty much all of the functionality of *Portable.Data.Sqlite* - with one significant exception: the `EncryptedTable<T>` functionality has not been ported.  And everything pretty much works the same way, so other than the `EncryptedTable<T>` functionality, it should *almost* be a drop-in replacement for *Portable.Data.Sqlite*.
+  * The new library is not implemented as a Portable Class Library (PCL) - it is a .NET Standard 1.1 library. So that should allow it to be supported and supportable for years and years, in the Microsoft .NET and Xamarin eco-system. *(Sidenote: you may think 'Yeah, but we are already up to .NET Standard 2.0, aren't you going to keep up?' Well, that isn't how things work in the .NET Standard world - for maximum compatibility, I want to comply with as low of a .NET Standard version as possible. If I can stick with .NET Standard 1.1, it should be automatically compatible with all versions that come after.)*
+  * The new library is based on a more stable and widely-used open-source cross-platform SQLite provider library - [SQLitePCL.raw](https://github.com/ericsink/SQLitePCL.raw) - which used by other major SQLite libraries like [SQLite-net](https://github.com/praeclarum/sqlite-net) and Microsoft's own [Microsoft.Data.Sqlite](https://www.nuget.org/packages/Microsoft.Data.SQLite/) and [Microsoft.EntityFrameworkCore.Sqlite](https://www.nuget.org/packages/Microsoft.EntityFrameworkCore.Sqlite/). Should be very stable long-term. *Portable.Data.Sqlite* is based on a Microsoft Open library - [SQLitePCL](https://sqlitepcl.codeplex.com/) - that appears to be abandoned.
+  * There **is** a new version of *Portable.Data.Sqlite* that removes the dependency on the **SQLitePCL** library, and has been tested with Xamarin.iOS, Xamarin.Android (pre-Nougat and post-Nougat), UWP and .NET 4.5. From my testing, it appears to work great. It is available in the *develop* branch of this repository - [available here](https://github.com/ellisnet/Portable.Data.Sqlite/tree/develop).  Check out the *Samples* folder in the *develop* branch for code samples of how to use it in those platforms.
+
+The **bad** news:
+
+  * This project - *Portable.Data.Sqlite* - will hereby be abandoned until further notice; I do not plan to fix bugs or provide any other updates. My attention will be devoted to **SimpleAdo.Sqlite** and other exciting projects.
+  * As mentioned above, the new **SimpleAdo.Sqlite** library does not include the `EncryptedTable<T>` functionality. I am not getting rid of that functionality - I worked hard on it - but I am moving it to a different library that I am currently working on.  All of the code in [this folder](https://github.com/ellisnet/Portable.Data.Sqlite/tree/develop/Portable.Data.Sqlite/EncryptedTable) should work great with **SimpleAdo.Sqlite** - by just fixing some namespaces; if you just want to pull that into your own project.  Or, use the *Portable.Data.Sqlite* [*develop* branch](https://github.com/ellisnet/Portable.Data.Sqlite/tree/develop) code and build your own libraries with this functionality.
+  * Also, the new library doesn't have the `IDatabasePath` interface built-in, so just copy [this](https://github.com/ellisnet/Portable.Data.Sqlite/blob/master/Portable.Data.Sqlite/IDatabasePath.cs) interface into your own project, if needed.  The use of this interface is explained well in the documentation for **SimpleAdo.Sqlite**.
+  * One other change to be aware of: the constructors for `SqliteConnection` are different between *Portable.Data.Sqlite* and **SimpleAdo.Sqlite**. This was necessary because of the switch away from *SQLitePCL* (and is also true in the *develop* branch of this library). Just read the docs and XML comments about how to create an instance of `SqliteConnection`; it's pretty easy.
+  * Finally, as of November 2017, I don't plan to update the *Portable.Data.Sqlite* [NuGet package](https://www.nuget.org/packages/Portable.Data.Sqlite/) beyond version 1.1.2. Specifically, I don't plan to produce a new NuGet package based on the *develop* branch code; because that would just be confusing, when I really want people to move to **SimpleAdo.Sqlite**. But my mind could be changed on that decision, if me creating an updated NuGet package of *Portable.Data.Sqlite* would be really helpful to somebody.
+
 Portable.Data.Sqlite
 ====================
 
@@ -14,7 +34,9 @@ This is a portable cross-platform ADO provider for SQLite databases, featuring t
   4. Provides a PCL-based ADO-style way of interacting with SQLite databases; based on a portable (PCL) implementation of Mono.Data.Sqlite that was adapted by Matthew Leibowitz (@mattleibow) - available [here](https://github.com/mattleibow/Mono.Data.Sqlite)
   5. Enables **easy table record-level and column-level encryption of data** in your SQLite database.
 
-The developer of this library welcomes all feedback, suggestions, issue/bug reports, and pull requests. Please log questions and issues in the Portable.Data.Sqlite GitHub *Issues* section - available [here](https://github.com/ellisnet/Portable.Data.Sqlite/issues)
+Was previously: The developer of this library welcomes all feedback, suggestions, issue/bug reports, and pull requests. Please log questions and issues in the Portable.Data.Sqlite GitHub *Issues* section - available here.
+
+Now: Not really, see above.
 
 The latest released version of this library is available via NuGet. From within Visual Studio and Xamarin Studio, search for **Portable.Data.Sqlite**
 
